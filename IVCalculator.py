@@ -18,11 +18,11 @@ for value in evValues:
     value.set(0)
     
 # Container for the EV labels.
-evLabels = Label(backgroundLabel, padx = 0, pady = 0)
+evLabels = Label(backgroundLabel, padx = 0, pady = 0, bg = "#133a5e")
 evLabels.place(relx = 0.775, rely = 0.578, anchor = "center")
 evValueLabels = []
 for i in range (0, 6):
-    evValueLabels.append(Label(evLabels, textvariable = evValues[i], font = ("Arial", 20), fg = "white"))
+    evValueLabels.append(Label(evLabels, textvariable = evValues[i], font = ("Arial", 20), fg = "white", bg = "#133a5e"))
     evValueLabels[i].place(anchor = "center")
     if i == 0:
         evValueLabels[i].pack(side = "top", padx = 7, pady = (0, 3.5))
@@ -38,11 +38,11 @@ for value in ivValues:
     value.set(0)
 
 # Container for the IV labels.
-ivLabels = Label(backgroundLabel, padx = 0, pady = 0)
+ivLabels = Label(backgroundLabel, padx = 0, pady = 0, bg = "#133a5e")
 ivLabels.place(relx = 0.91, rely = 0.578, anchor = "center")
 ivValueLabels = []
 for i in range(0, 6):
-    ivValueLabels.append(Label(ivLabels, textvariable = ivValues[i], font = ("Arial", 20), fg = "white"))
+    ivValueLabels.append(Label(ivLabels, textvariable = ivValues[i], font = ("Arial", 20), fg = "white", bg = "#133a5e"))
     ivValueLabels[i].place(anchor = "center")
     if i == 0:
         ivValueLabels[i].pack(side = "top", padx = 7, pady = (0, 3.5))
@@ -51,26 +51,18 @@ for i in range(0, 6):
     else:
         ivValueLabels[i].pack(side = "top", padx = 7, pady = 3.5)
 
+'''
+Create the Pokemon selector.
+This block iterates through a .txt to retieve all pokemon for the optionmenu.
+'''
 selectedPokemon = StringVar(root)
 selectedPokemon.set("Bulbasaur")
 pokemonList = []
-pokemonList.append("Bulbasaur")
-pokemonList.append("Ivysaur")
-pokemonList.append("Venusaur")
-pokemonList.append("Charmander")
-pokemonList.append("Charmeleon")
-pokemonList.append("Charizard")
-pokemonList.append("Squirtle")
-pokemonList.append("Wartortle")
-pokemonList.append("Blastoise")
-pokemonList.append("Caterpie")
-pokemonList.append("Metapod")
-pokemonList.append("Butterfree")
-pokemonList.append("Weedle")
-pokemonList.append("Kakuna")
-pokemonList.append("Beedrill")
+with open("NationalPokedex.txt", "r") as file:
+    for line in file:
+        pokemonList.append(line.strip())
 
-w = OptionMenu(backgroundLabel, selectedPokemon, *pokemonList)
-w.place(relx = 0.225, rely = 0.25, anchor='center')
+pokemonListSelect = OptionMenu(backgroundLabel, selectedPokemon, *pokemonList)
+pokemonListSelect.place(relx = 0.225, rely = 0.25, anchor='center')
 
 root.mainloop()
