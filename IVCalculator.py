@@ -1,12 +1,12 @@
 from tkinter import *
 from PIL import Image, ImageTk
 
-def calculateIVs(pokemon, index):
+def calculateIVs(pokemon):
     pokemonIVs = []
     pokemonIVs.append(((100 * (pokemon[4][0] - pokemon[2] - 10)) / pokemon[2]) - (2 * pokemon[3][0]) - (pokemon[5][0] / 4))
     for i in range(1, 6):
-        pokemonIVs.append()
-    return 0
+        pokemonIVs.append(0)
+    return pokemonIVs
 
 # Window Setup
 root = Tk()
@@ -31,6 +31,11 @@ try:
             baseList = base.strip().split(",")
             statsList = stats.strip().split(",")
             evsList = evs.strip().split(",")
+            level = int(level)
+            for i in range(0, 6):
+                baseList[i] = int(baseList[i])
+                statsList[i] = int(statsList[i])
+                evsList[i] = int(evsList[i])
             myPokemonDict[pokemonNames.rstrip()] = (nature, level, baseList, statsList, evsList)
 except FileNotFoundError:
     with open("MyPokemon.txt", 'w') as file:
@@ -133,9 +138,15 @@ for i in range (0, 6):
 
 
 # Initialize IV Variables
+myIVs = calculateIVs(myPokemonList[0])
 ivValues = [IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()]
+temp = 0
 for value in ivValues:
-    value.set(0)
+    if len(myPokemonList) == 0:
+        value.set(0)
+    else:
+        value.set(myIVs[temp])
+    temp += 1
 
 # Container for the IV labels.
 ivLabels = Label(backgroundLabel, padx = 0, pady = 0, bg = "#133a5e")
