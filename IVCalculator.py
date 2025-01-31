@@ -2,11 +2,86 @@ from tkinter import *
 from PIL import Image, ImageTk
 
 def calculateIVs(pokemon):
+    '''
+    This function calculates the IVs of a given pokemon given all stats and using the in-game formula.
+    Before calculations, multipliers are established for each stat based on the pokemon's nature.
+    HP calculations are done separately since the formula is different.
+    '''
+    multipliers = getNatureMult(pokemon[1])
     pokemonIVs = []
     pokemonIVs.append(((100 * (pokemon[4][0] - pokemon[2] - 10)) / pokemon[2]) - (2 * pokemon[3][0]) - (pokemon[5][0] / 4))
+    pokemonIVs[0] = int(pokemonIVs[0])
     for i in range(1, 6):
-        pokemonIVs.append(0)
+        pokemonIVs.append(((100.0 * ((pokemon[4][i] / multipliers[i - 1]) - 5.0)) / pokemon[2]) - (2.0 * pokemon[3][i]) - (pokemon[5][i] / 4.0))
+        pokemonIVs[i] = int(pokemonIVs[i])
     return pokemonIVs
+
+def getNatureMult(nature):
+    '''
+    This function determins stat multipliers based on a pokemon's nature.
+    Returns a list of all stat multipliers except HP.
+    '''
+    multipliers = [1.0, 1.0, 1.0, 1.0, 1.0]
+
+    if nature == "Adamant":
+        multipliers[0] = 1.1
+        multipliers[2] = 0.9
+    elif nature == "Bold":
+        multipliers[1] = 1.1
+        multipliers[0] = 0.9
+    elif nature == "Brave":
+        multipliers[0] = 1.1
+        multipliers[4] = 0.9
+    elif nature == "Calm":
+        multipliers[3] = 1.1
+        multipliers[2] = 0.9
+    elif nature == "Gentle":
+        multipliers[3] = 1.1
+        multipliers[1] = 0.9
+    elif nature == "Hasty":
+        multipliers[4] = 1.1
+        multipliers[1] = 0.9
+    elif nature == "Impish":
+        multipliers[1] = 1.1
+        multipliers[2] = 0.9
+    elif nature == "Jolly":
+        multipliers[4] = 1.1
+        multipliers[2] = 0.9
+    elif nature == "Lax":
+        multipliers[1] = 1.1
+        multipliers[3] = 0.9
+    elif nature == "Lonely":
+        multipliers[0] = 1.1
+        multipliers[1] = 0.9
+    elif nature == "Mild":
+        multipliers[2] = 1.1
+        multipliers[1] = 0.9
+    elif nature == "Modest":
+        multipliers[2] = 1.1
+        multipliers[0] = 0.9
+    elif nature == "Naive":
+        multipliers[4] = 1.1
+        multipliers[3] = 0.9
+    elif nature == "Naughty":
+        multipliers[0] = 1.1
+        multipliers[3] = 0.9
+    elif nature == "Quiet":
+        multipliers[2] = 1.1
+        multipliers[4] = 0.9
+    elif nature == "Rash":
+        multipliers[2] = 1.1
+        multipliers[3] = 0.9
+    elif nature == "Relaxed":
+        multipliers[1] = 1.1
+        multipliers[4] = 0.9
+    elif nature == "Sassy":
+        multipliers[3] = 1.1
+        multipliers[4] = 0.9
+    elif nature == "Timid":
+        multipliers[4] = 1.1
+        multipliers[0] = 0.9
+
+    return multipliers
 
 # Window Setup
 root = Tk()
