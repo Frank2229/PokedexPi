@@ -1,6 +1,8 @@
 from tkinter import *
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageSequence
 import math
+import cv2
+import numpy
 
 def calculate_ivs(pokemon):
     '''
@@ -240,5 +242,6 @@ def main():
             iv_value_labels[i].pack(side = "top", padx = 7, pady = 3.5)
 
     root.mainloop()
+
 
 main()
