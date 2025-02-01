@@ -1,8 +1,6 @@
 from tkinter import *
 from PIL import Image, ImageTk, ImageSequence
 import math
-import cv2
-import numpy
 
 def calculate_ivs(pokemon):
     '''
@@ -115,7 +113,49 @@ def get_nature_mult(nature):
     return multipliers
 
 
+class AnimatedGIF(Label):
+    """ A class to display an animated GIF in Tkinter """
+    def __init__(self, parent, gif_path):
+        Label.__init__(self, parent, bg = "#0a0c14", width = 180, height = 130)
+        self.parent = parent
+        self.gif_path = gif_path
+        self.frames = []
+        self.retained_frames = []  # Store a separate reference to frames to prevent garbage collection
+        
+        self.load_gif()
+        self.index = 0
+        
+        if self.frames:
+            self.config(image=self.frames[0])  # Set first frame before loop starts
+        self.after(0, self.animate)  # Ensure animation starts immediately
+
+    def load_gif(self):
+        """ Loads GIF frames and stores them in a list """
+        image = Image.open(self.gif_path)
+        self.frames = [ImageTk.PhotoImage(frame.copy()) for frame in ImageSequence.Iterator(image)]
+        self.retained_frames = self.frames[:]  # Force retention of frames
+
+    def animate(self):
+        """ Loops through frames and updates the image """
+        if self.frames:
+            self.config(image=self.frames[self.index])
+            self.index = (self.index + 1) % len(self.frames)  # Move to the next frame
+            self.after(40, self.animate)  # Set a fixed frame duration
+
+
+def add_my_pokemon(selected_pokemon):
+    print(selected_pokemon)
+
+
+def callback(selection):
+    print(selection)
+
+
 def main():
+    def callback(selection):
+        # Update the selected Pokémon image
+        print("success")
+
     root = Tk()
     root.title("IV Calculator")
     root.geometry("480x320")
@@ -145,12 +185,17 @@ def main():
         selected_pokemon.set("Bulbasaur")
     else:
         selected_pokemon.set(my_pokemon_list[0][0])
+    pokemon_image_label = AnimatedGIF(background_label, "Images/Sprites/" + selected_pokemon.get() + ".gif")
+    pokemon_image_label.place(relx=0.25, rely=0.6, anchor="center")
     pokemon_list = []
     with open("NationalPokedex.txt", "r") as file:
         for line in file:
             pokemon_list.append(line.strip())
-    pokemon_list_select = OptionMenu(background_label, selected_pokemon, *pokemon_list)
+    pokemon_list_select = OptionMenu(background_label, selected_pokemon, *pokemon_list, command = callback)
     pokemon_list_select.place(relx = 0.125, rely = 0.25, anchor='center')
+
+    pokemon_add_button = Button(background_label, text = "+", font = ("Arial", 11))
+    pokemon_add_button.place(relx = 0.425, rely = 0.205)
 
     # Setup nature
     nature_selected = StringVar(root)
