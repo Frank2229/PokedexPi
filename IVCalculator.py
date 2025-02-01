@@ -1,5 +1,6 @@
 from tkinter import *
 from PIL import Image, ImageTk
+import math
 
 def calculateIVs(pokemon):
     '''
@@ -9,10 +10,10 @@ def calculateIVs(pokemon):
     '''
     multipliers = getNatureMult(pokemon[1])
     pokemonIVs = []
-    pokemonIVs.append(((100 * (pokemon[4][0] - pokemon[2] - 10)) / pokemon[2]) - (2 * pokemon[3][0]) - (pokemon[5][0] / 4))
+    pokemonIVs.append(math.ceil((100 * (pokemon[4][0] - pokemon[2] - 10)) / pokemon[2]) - (2 * pokemon[3][0]) - (int)(pokemon[5][0] / 4))
     pokemonIVs[0] = int(pokemonIVs[0])
     for i in range(1, 6):
-        pokemonIVs.append(((100.0 * ((pokemon[4][i] / multipliers[i - 1]) - 5.0)) / pokemon[2]) - (2.0 * pokemon[3][i]) - (pokemon[5][i] / 4.0))
+        pokemonIVs.append(((100.0 * (math.ceil(pokemon[4][i] / multipliers[i - 1]) - 5.0)) / pokemon[2]) - (2.0 * pokemon[3][i]) - (int)(pokemon[5][i] / 4.0))
         pokemonIVs[i] = int(pokemonIVs[i])
     return pokemonIVs
 
