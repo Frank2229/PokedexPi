@@ -28,6 +28,7 @@ def load_my_pokemon_data():
     try:
         with open("MyPokemon.txt", 'r') as file:
             for line in file:
+                print(line)
                 [pokemon_names, nature, level, base, stats, evs] = line.strip().split(":")
                 base_list = base.strip().split(",")
                 stats_list = stats.strip().split(",")
@@ -41,7 +42,7 @@ def load_my_pokemon_data():
     except FileNotFoundError:
         with open("MyPokemon.txt", 'w') as file:
             file.write("")
-
+    
     return my_pokemon_dict
 
 
@@ -192,10 +193,10 @@ def main():
         for line in file:
             pokemon_list.append(line.strip())
     pokemon_list_select = OptionMenu(background_label, selected_pokemon, *pokemon_list, command = callback)
+    pokemon_list_select.configure(bg = "#133a5e", fg = "white", activebackground = "#102547", activeforeground = "white")
+    pokemon_list_select["highlightthickness"] = 0
+    pokemon_list_select["menu"].config(bg = "#102547", fg = "white")
     pokemon_list_select.place(relx = 0.125, rely = 0.25, anchor='center')
-
-    pokemon_add_button = Button(background_label, text = "+", font = ("Arial", 11))
-    pokemon_add_button.place(relx = 0.425, rely = 0.205)
 
     # Setup nature
     nature_selected = StringVar(root)
@@ -208,7 +209,29 @@ def main():
         for line in file:
             nature_list.append(line.strip())
     natures_list_select = OptionMenu(background_label, nature_selected, *nature_list)
+    natures_list_select.configure(bg = "#133a5e", fg = "white", activebackground = "#102547", activeforeground = "white")
+    natures_list_select["highlightthickness"] = 0
+    natures_list_select["menu"].config(bg = "#102547", fg = "white")
     natures_list_select.place(relx = 0.325, rely = 0.25, anchor = "center")
+    
+    pokemon_add_button = Button(background_label, text = "+", font = ("Arial", 11))
+    pokemon_add_button.configure(bg = "#133a5e", fg = "white", activebackground = "#102547", activeforeground = "white")
+    pokemon_add_button["highlightthickness"] = 0
+    pokemon_add_button.place(relx = 0.425, rely = 0.205)
+
+    # Setup my pokemon
+    my_pokemon_selected = StringVar(root)
+    my_pokemon_names_list = []
+    print(len(my_pokemon_list))
+    if len(my_pokemon_list) > 0:
+        my_pokemon_selected.set(my_pokemon_list[0][0])
+        for pokemon in my_pokemon_list:
+            my_pokemon_names_list.append(pokemon[0])
+    my_pokemon_list_select = OptionMenu(background_label, my_pokemon_selected, *my_pokemon_names_list)
+    my_pokemon_list_select.configure(bg = "#133a5e", fg = "white", activebackground = "#102547", activeforeground = "white")
+    my_pokemon_list_select["highlightthickness"] = 0
+    my_pokemon_list_select["menu"].config(bg = "#102547", fg = "white")
+    my_pokemon_list_select.place(relx = 0.325, rely = 0.1, anchor = "center")
 
     # Setup level
     pokemon_lvl = IntVar()
