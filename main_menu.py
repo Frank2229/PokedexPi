@@ -34,15 +34,15 @@ def open_app(file_name):
 
 def select_menu(event):
     if current_selection == 0:
-        open_app('pokemon_data_viewer.py')
+        open_app('pokemon_search.py')
     elif current_selection == 1:
         open_app('region_map_viewer.py')
     elif current_selection == 2:
-        open_app('iv_calculator.py')
+        open_app('type_chart.py')
     elif current_selection == 3:
-        open_app('iv_calculator.py')
+        open_app('tm_list.py')
     elif current_selection == 4:
-        open_app('iv_calculator.py')
+        open_app('move_list.py')
     elif current_selection == 5:
         open_app('iv_calculator.py')
 
@@ -70,5 +70,6 @@ def main():
     root.bind("<Return>", select_menu)
 
     root.mainloop()
+
 
 main()
