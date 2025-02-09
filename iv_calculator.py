@@ -47,6 +47,50 @@ def create_window():
     return root, canvas
 
 
+def generate_stat_table(my_pokemon_list):
+    '''
+    Populate the stat table with pokemon data.
+    Level: Top-left
+    Column 1: Base Stats
+    Column 2: EVs
+    Column 3: IVs
+    '''
+    canvas.create_text(294, 59, text=str(my_pokemon_list[0][2]), font=("Arial", 20), fill="white", anchor="center")
+    
+    column_initial = 340
+    column_spacing = 55
+    row_top = 95
+    row_current = row_top
+    row_spacing = 36
+    
+    # Base Stats
+    stat_values = []
+    for i in range(0, 6):
+        stat_values.append(my_pokemon_list[0][4][i])
+    for i in range(0, 6):
+        canvas.create_text(column_initial, row_current, text=str(stat_values[i]), font=("Arial", 20), fill="white", anchor="center")
+        row_current += row_spacing
+        
+    column_initial += column_spacing
+    row_current = row_top
+    
+    # EVs
+    ev_values = []
+    for i in range(0, 6):
+        ev_values.append(my_pokemon_list[0][5][i])
+    for i in range(0, 6):
+        canvas.create_text(column_initial, row_current, text=str(ev_values[i]), font=("Arial", 20), fill="white", anchor="center")
+        row_current += row_spacing
+        
+    column_initial += column_spacing
+    row_current = row_top
+    
+    # IVs
+    iv_values = calculate_ivs(my_pokemon_list[0])
+    for i in range(0, 6):
+        canvas.create_text(column_initial, row_current, text=str(iv_values[i]), font=("Arial", 20), fill="white", anchor="center")
+        row_current += row_spacing
+
 def get_nature_mult(nature):
     '''
     Determines stat multipliers based on a pokemon's nature.
@@ -153,23 +197,13 @@ def main():
     
     my_pokemon_list = load_my_pokemon_data()
     
-    canvas.pokemon_image = tk.PhotoImage(file="images/sprites/articuno.gif")
-    canvas.pokemon_image_item = canvas.create_image(25, 90, anchor=tk.NW, image=canvas.pokemon_image)
+    canvas.pokemon_image = tk.PhotoImage(file='images/sprites/charizard.gif')
+    canvas.pokemon_image_item = canvas.create_image(105, 175, anchor='center', image=canvas.pokemon_image)
     animate_gif(0)
     
-    # Initialize and Setup IV Variables
-    my_ivs = calculate_ivs(my_pokemon_list[0])
-    iv_values = []
-    temp = 0
-    for value in iv_values:
-        if len(my_pokemon_list) == 0:
-            value.set(0)
-        else:
-            value.set(my_ivs[temp])
-        temp += 1
-    temp = 95
-    for i in range(0, 6):
-        canvas.create_text(450, temp, text=str(my_ivs[i]), font=("Arial", 20), fill="white", anchor="center")
-        temp += 36
+    generate_stat_table(my_pokemon_list)
 
     root.mainloop()
+
+
+main()
