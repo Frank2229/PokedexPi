@@ -29,7 +29,7 @@ def create_window():
 
 def open_app(file_name):
     '''Opens a selected application using a app name argument.'''
-    os.system(f"{file_name}")
+    os.system(f"python3 {file_name}")
 
 
 def select_menu(event):
@@ -50,6 +50,7 @@ def select_menu(event):
 def main():
     global canvas
     root, canvas = create_window()
+    #root.attributes("-fullscreen", True)
 
     '''Arrow selector'''
     arrow_select_image = tk.PhotoImage(file='images/cursors/arrow.png')
