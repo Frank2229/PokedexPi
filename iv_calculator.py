@@ -55,7 +55,7 @@ def generate_stat_table(my_pokemon_list):
     Column 2: EVs
     Column 3: IVs
     '''
-    canvas.create_text(294, 59, text=str(my_pokemon_list[0][2]), font=("Arial", 20), fill="white", anchor="center")
+    level_ref = canvas.create_text(294, 59, text=str(my_pokemon_list[0][2]), font=("Arial", 20), fill="white", anchor="center")
     
     column_initial = 340
     column_spacing = 55
@@ -65,10 +65,11 @@ def generate_stat_table(my_pokemon_list):
     
     # Base Stats
     stat_values = []
+    stat_ref = []
     for i in range(0, 6):
         stat_values.append(my_pokemon_list[0][4][i])
     for i in range(0, 6):
-        canvas.create_text(column_initial, row_current, text=str(stat_values[i]), font=("Arial", 20), fill="white", anchor="center")
+        stat_ref.append(canvas.create_text(column_initial, row_current, text=str(stat_values[i]), font=("Arial", 20), fill="white", anchor="center"))
         row_current += row_spacing
         
     column_initial += column_spacing
@@ -76,10 +77,11 @@ def generate_stat_table(my_pokemon_list):
     
     # EVs
     ev_values = []
+    ev_ref = []
     for i in range(0, 6):
         ev_values.append(my_pokemon_list[0][5][i])
     for i in range(0, 6):
-        canvas.create_text(column_initial, row_current, text=str(ev_values[i]), font=("Arial", 20), fill="white", anchor="center")
+        ev_ref.append(canvas.create_text(column_initial, row_current, text=str(ev_values[i]), font=("Arial", 20), fill="white", anchor="center"))
         row_current += row_spacing
         
     column_initial += column_spacing
@@ -87,9 +89,12 @@ def generate_stat_table(my_pokemon_list):
     
     # IVs
     iv_values = calculate_ivs(my_pokemon_list[0])
+    iv_ref = []
     for i in range(0, 6):
-        canvas.create_text(column_initial, row_current, text=str(iv_values[i]), font=("Arial", 20), fill="white", anchor="center")
+        iv_ref = canvas.create_text(column_initial, row_current, text=str(iv_values[i]), font=("Arial", 20), fill="white", anchor="center")
         row_current += row_spacing
+        
+    return level_ref, stat_ref, ev_ref, iv_ref
 
 def get_nature_mult(nature):
     '''
@@ -201,7 +206,7 @@ def main():
     canvas.pokemon_image_item = canvas.create_image(105, 175, anchor='center', image=canvas.pokemon_image)
     animate_gif(0)
     
-    generate_stat_table(my_pokemon_list)
+    level_ref, stat_ref, ev_ref, iv_ref = generate_stat_table(my_pokemon_list)
 
     root.mainloop()
 
