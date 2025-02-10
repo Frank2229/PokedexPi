@@ -1,7 +1,9 @@
 import tkinter as tk
+import pygame
 import os
 
 def change_menu_selection(event):
+    '''Depending on if the user preses 'up' or 'down', change the current_selection variable.'''
     global current_selection
     if event.keysym == "Up" and current_selection > 0:
         canvas.move(arrow_id, 0, up_menu_offset)
@@ -12,8 +14,9 @@ def change_menu_selection(event):
 
 
 def create_menu_options():
+    '''Create all selectable options on the main menu'''
     menu_offset = 44
-    canvas.create_text(310, 48 + (0 * menu_offset), text="Pokemon Data", font=("Bahnschrift", 16), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (0 * menu_offset), text="Pokémon Data", font=("Bahnschrift", 16), fill="white", anchor="w")
     canvas.create_text(310, 48 + (1 * menu_offset), text="Region Maps", font=("Bahnschrift", 16), fill="white", anchor="w")
     canvas.create_text(310, 48 + (2 * menu_offset), text="Type Chart", font=("Bahnschrift", 16), fill="white", anchor="w")
     canvas.create_text(310, 48 + (3 * menu_offset), text="TM/HM List", font=("Bahnschrift", 16), fill="white", anchor="w")
@@ -48,47 +51,51 @@ def open_app(file_name):
 
 
 def select_menu(event):
-    if current_selection == 0:
-        open_app('pokemon_search.py')
-    elif current_selection == 1:
-        open_app('region_map_viewer.py')
-    elif current_selection == 2:
-        open_app('type_chart.py')
-    elif current_selection == 3:
-        open_app('tm_list.py')
-    elif current_selection == 4:
-        open_app('move_list.py')
-    elif current_selection == 5:
-        open_app('iv_calculator.py')
+    '''Based on the current selection, open the corresponding Python application'''
+    match current_selection:
+        case 0:
+            open_app('pokemon_search.py')
+        case 1:
+            open_app('region_map_viewer.py')
+        case 2:
+            open_app('type_chart.py')
+        case 3:
+            open_app('tm_list.py')
+        case 4:
+            open_app('move_list.py')
+        case 5:
+            open_app('iv_calculator.py')
 
 
 def main():
-    global canvas
+    global canvas, root
     root, canvas = create_window()
 
-    '''Logo'''
+    # Logo
     logo_image = tk.PhotoImage(file='images/pokedexpi_logo.png')
     canvas.logo_image = logo_image
     global logo_id
-    logo_id = canvas.create_image(130, 160, image=logo_image)
+    logo_id = canvas.create_image(130, 140, image=logo_image)
+    pokeball_image = tk.PhotoImage(file='images/pokeball.png')
+    canvas.pokeball_image = pokeball_image
+    global pokeball_id
+    pokeball_id = canvas.create_image(130, 190, image=pokeball_image)
 
-    '''Menu Options'''
+    # Menu Options
     create_menu_options()
 
-    '''Arrow selector'''
+    # Arrow Selector
     arrow_select_image = tk.PhotoImage(file='images/cursors/arrow.png')
     canvas.arrow_select_image = arrow_select_image
     global arrow_id
     arrow_id = canvas.create_image(295, 50, image=arrow_select_image)
-
-    '''Global variables for the movement of the selector arrow'''
     global up_menu_offset, down_menu_offset
     global current_selection
     current_selection = 0
     up_menu_offset = -44
     down_menu_offset = 44
 
-    '''Keybindings'''
+    # Keybindings
     root.bind("<Up>", change_menu_selection)
     root.bind("<Down>", change_menu_selection)
     root.bind("<Return>", select_menu)
