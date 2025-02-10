@@ -11,6 +11,16 @@ def change_menu_selection(event):
         current_selection += 1
 
 
+def create_menu_options():
+    menu_offset = 44
+    canvas.create_text(310, 48 + (0 * menu_offset), text="Pokemon Data", font=("Bahnschrift", 16), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (1 * menu_offset), text="Region Maps", font=("Bahnschrift", 16), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (2 * menu_offset), text="Type Chart", font=("Bahnschrift", 16), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (3 * menu_offset), text="TM/HM List", font=("Bahnschrift", 16), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (4 * menu_offset), text="Move List", font=("Bahnschrift", 16), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (5 * menu_offset), text="IV Calculator", font=("Bahnschrift", 16), fill="white", anchor="w")
+
+
 def create_window():
     '''Creates and returns the application window and background.'''
     root = tk.Tk()
@@ -24,12 +34,17 @@ def create_window():
     canvas.bg_image = bg_image
     canvas.create_image(0, 0, image=bg_image, anchor="nw")
 
+    background_overlay_image = tk.PhotoImage(file='images/menus/main_menu_overlay.png')
+    canvas.background_overlay_image = background_overlay_image
+    global background_overlay_id
+    background_overlay_id = canvas.create_image(0, 0, image=background_overlay_image)
+
     return root, canvas
 
 
 def open_app(file_name):
     '''Opens a selected application using a app name argument.'''
-    os.system(f"python3 {file_name}")
+    os.system(f"{file_name}")
 
 
 def select_menu(event):
@@ -50,7 +65,15 @@ def select_menu(event):
 def main():
     global canvas
     root, canvas = create_window()
-    #root.attributes("-fullscreen", True)
+
+    '''Logo'''
+    logo_image = tk.PhotoImage(file='images/pokedexpi_logo.png')
+    canvas.logo_image = logo_image
+    global logo_id
+    logo_id = canvas.create_image(130, 160, image=logo_image)
+
+    '''Menu Options'''
+    create_menu_options()
 
     '''Arrow selector'''
     arrow_select_image = tk.PhotoImage(file='images/cursors/arrow.png')
