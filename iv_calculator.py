@@ -9,7 +9,7 @@ def animate_gif(frame_number):
     try:
         canvas.pokemon_image.configure(format=f"gif -index {frame_number}")
         canvas.itemconfig(canvas.pokemon_image_item, image=canvas.pokemon_image)
-        root.after(30, animate_gif, frame_number + 1) # First argument controls the animation speed.
+        root.after(25, animate_gif, frame_number + 1) # First argument controls the animation speed.
     except tk.TclError:
         animate_gif(0)
             
@@ -40,9 +40,14 @@ def create_window():
     canvas = tk.Canvas(root, width=480, height=320)
     canvas.pack()
 
-    bg_image = tk.PhotoImage(file='Images/menus/iv_background.png')
+    bg_image = tk.PhotoImage(file='Images/menus/main_menu_background.png')
     canvas.bg_image = bg_image
     canvas.create_image(0, 0, image=bg_image, anchor="nw")
+
+    background_overlay_image = tk.PhotoImage(file='images/menus/iv_menu_overlay.png')
+    canvas.background_overlay_image = background_overlay_image
+    global background_overlay_id
+    background_overlay_id = canvas.create_image(0, 0, image=background_overlay_image, anchor="nw")
 
     return root, canvas
 
@@ -172,9 +177,8 @@ def load_my_pokemon_data():
     '''
     my_pokemon_dict = {}
     try:
-        with open("MyPokemon.txt", 'r') as file:
+        with open("my_pokemon.txt", 'r') as file:
             for line in file:
-                print(line)
                 [pokemon_names, nature, level, base, stats, evs] = line.strip().split(":")
                 base_list = base.strip().split(",")
                 stats_list = stats.strip().split(",")
@@ -186,7 +190,7 @@ def load_my_pokemon_data():
                     evs_list[i] = int(evs_list[i])
                 my_pokemon_dict[pokemon_names.rstrip()] = (nature, level, base_list, stats_list, evs_list)
     except FileNotFoundError:
-        with open("MyPokemon.txt", 'w') as file:
+        with open("my_pokemon.txt", 'w') as file:
             file.write("")
     
     my_pokemon_list = []        

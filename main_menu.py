@@ -40,7 +40,7 @@ def create_window():
     background_overlay_image = tk.PhotoImage(file='images/menus/main_menu_overlay.png')
     canvas.background_overlay_image = background_overlay_image
     global background_overlay_id
-    background_overlay_id = canvas.create_image(0, 0, image=background_overlay_image)
+    background_overlay_id = canvas.create_image(0, 0, image=background_overlay_image, anchor="nw")
 
     return root, canvas
 
