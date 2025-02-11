@@ -40,7 +40,7 @@ def create_window():
     canvas = tk.Canvas(root, width=480, height=320)
     canvas.pack()
 
-    bg_image = tk.PhotoImage(file='Images/menus/main_menu_background.png')
+    bg_image = tk.PhotoImage(file='images/menus/main_menu_background.png')
     canvas.bg_image = bg_image
     canvas.create_image(0, 0, image=bg_image, anchor="nw")
 
@@ -60,13 +60,34 @@ def generate_stat_table(my_pokemon_list):
     Column 2: EVs
     Column 3: IVs
     '''
-    level_ref = canvas.create_text(294, 59, text=str(my_pokemon_list[0][2]), font=("Arial", 20), fill="white", anchor="center")
-    
     column_initial = 340
     column_spacing = 55
     row_top = 95
     row_current = row_top
     row_spacing = 36
+    header_x = 260
+    header_y = 59
+    font_size = 16
+
+    # Name
+    name_ref = canvas.create_text(105, header_y, text=str(my_pokemon_list[0][0]), font=("Bahnschrift", 19, "italic"), fill="white", anchor="center")
+
+    # Level
+    canvas.create_text(header_x, header_y, text="Lv:", font=("Bahnschrift", font_size), fill="white", anchor="center")
+    level_ref = canvas.create_text(294, header_y, text=str(my_pokemon_list[0][2]), font=("Bahnschrift", font_size), fill="white", anchor="center")
+
+    # Column Titles
+    canvas.create_text(column_initial+(0*column_spacing), header_y, text="Base", font=("Bahnschrift", font_size), fill="white", anchor="center")
+    canvas.create_text(column_initial+(1*column_spacing), header_y, text="EVs", font=("Bahnschrift", font_size), fill="white", anchor="center")
+    canvas.create_text(column_initial+(2*column_spacing), header_y, text="IVs", font=("Bahnschrift", font_size), fill="white", anchor="center")
+
+    # Row Titles
+    canvas.create_text(header_x, row_top + (0*row_spacing), text="HP", font=("Bahnschrift", font_size), fill="white", anchor="center")
+    canvas.create_text(header_x, row_top + (1*row_spacing), text="Atk", font=("Bahnschrift", font_size), fill="white", anchor="center")
+    canvas.create_text(header_x, row_top + (2*row_spacing), text="Def", font=("Bahnschrift", font_size), fill="white", anchor="center")
+    canvas.create_text(header_x, row_top + (3*row_spacing), text="SpA", font=("Bahnschrift", font_size), fill="white", anchor="center")
+    canvas.create_text(header_x, row_top + (4*row_spacing), text="SpD", font=("Bahnschrift", font_size), fill="white", anchor="center")
+    canvas.create_text(header_x, row_top + (5*row_spacing), text="Spe", font=("Bahnschrift", font_size), fill="white", anchor="center")
     
     # Base Stats
     stat_values = []
@@ -74,7 +95,7 @@ def generate_stat_table(my_pokemon_list):
     for i in range(0, 6):
         stat_values.append(my_pokemon_list[0][4][i])
     for i in range(0, 6):
-        stat_ref.append(canvas.create_text(column_initial, row_current, text=str(stat_values[i]), font=("Arial", 20), fill="white", anchor="center"))
+        stat_ref.append(canvas.create_text(column_initial, row_current, text=str(stat_values[i]), font=("Arial", font_size), fill="white", anchor="center"))
         row_current += row_spacing
         
     column_initial += column_spacing
@@ -86,7 +107,7 @@ def generate_stat_table(my_pokemon_list):
     for i in range(0, 6):
         ev_values.append(my_pokemon_list[0][5][i])
     for i in range(0, 6):
-        ev_ref.append(canvas.create_text(column_initial, row_current, text=str(ev_values[i]), font=("Arial", 20), fill="white", anchor="center"))
+        ev_ref.append(canvas.create_text(column_initial, row_current, text=str(ev_values[i]), font=("Arial", font_size), fill="white", anchor="center"))
         row_current += row_spacing
         
     column_initial += column_spacing
@@ -96,7 +117,7 @@ def generate_stat_table(my_pokemon_list):
     iv_values = calculate_ivs(my_pokemon_list[0])
     iv_ref = []
     for i in range(0, 6):
-        iv_ref = canvas.create_text(column_initial, row_current, text=str(iv_values[i]), font=("Arial", 20), fill="white", anchor="center")
+        iv_ref = canvas.create_text(column_initial, row_current, text=str(iv_values[i]), font=("Arial", font_size), fill="white", anchor="center")
         row_current += row_spacing
         
     return level_ref, stat_ref, ev_ref, iv_ref
@@ -207,7 +228,7 @@ def main():
     my_pokemon_list = load_my_pokemon_data()
     
     canvas.pokemon_image = tk.PhotoImage(file='images/sprites/charizard.gif')
-    canvas.pokemon_image_item = canvas.create_image(105, 175, anchor='center', image=canvas.pokemon_image)
+    canvas.pokemon_image_item = canvas.create_image(105, 170, anchor='center', image=canvas.pokemon_image)
     animate_gif(0)
     
     level_ref, stat_ref, ev_ref, iv_ref = generate_stat_table(my_pokemon_list)
