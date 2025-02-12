@@ -31,6 +31,27 @@ def calculate_ivs(pokemon):
     return pokemon_ivs
 
 
+def change_selected_pokemon(event):
+    '''
+    Cycles through pokemon roster.
+    '''
+    global current_pokemon_index
+    if event.keysym == "Left":
+        if current_pokemon_index == 0:
+            current_pokemon_index = len(my_pokemon_list) - 1
+        else:
+            current_pokemon_index -= 1
+    elif event.keysym == "Right":
+        if current_pokemon_index == len(my_pokemon_list) - 1:
+            current_pokemon_index = 0
+        else:
+            current_pokemon_index += 1
+    pokemon_image = tk.PhotoImage(file='images/sprites/' + my_pokemon_list[current_pokemon_index][0].lower() + '.gif')
+    canvas.itemconfig(canvas.pokemon_image_item, image=pokemon_image)
+    canvas.pokemon_image = pokemon_image
+    canvas.itemconfig(name_ref, text=my_pokemon_list[current_pokemon_index][0])
+
+
 def create_window():
     '''Creates and returns the application window and background.'''
     root = tk.Tk()
@@ -52,6 +73,34 @@ def create_window():
     return root, canvas
 
 
+def generate_pokemon_viewer(my_pokemon_list):
+    '''
+    Generate basic info of currently selected pokemon.
+    '''
+    global current_pokemon_index
+
+    # Name
+    name_ref = canvas.create_text(115, header_y, text=str(my_pokemon_list[current_pokemon_index][0]), font=("Bahnschrift", font_size), fill="white", anchor="center")
+
+    # Selector Arrows
+    arrow_left_image = tk.PhotoImage(file='images/cursors/arrow_left.png')
+    canvas.arrow_left_image = arrow_left_image
+    global arrow_left_id
+    arrow_left_id = canvas.create_image(40, 160, image=arrow_left_image)
+
+    arrow_right_image = tk.PhotoImage(file='images/cursors/arrow.png')
+    canvas.arrow_right_image = arrow_right_image
+    global arrow_right_id
+    arrow_right_id = canvas.create_image(190, 160, image=arrow_right_image)
+
+    # Selected Pokemon Image
+    canvas.pokemon_image = tk.PhotoImage(file='images/sprites/' + my_pokemon_list[current_pokemon_index][0].lower() + '.gif')
+    canvas.pokemon_image_item = canvas.create_image(120, 160, anchor='center', image=canvas.pokemon_image)
+    animate_gif(0)
+
+    return name_ref
+
+
 def generate_stat_table(my_pokemon_list):
     '''
     Populate the stat table with pokemon data.
@@ -66,11 +115,6 @@ def generate_stat_table(my_pokemon_list):
     row_current = row_top
     row_spacing = 36
     header_x = 260
-    header_y = 59
-    font_size = 16
-
-    # Name
-    name_ref = canvas.create_text(105, header_y, text=str(my_pokemon_list[0][0]), font=("Bahnschrift", 19, "italic"), fill="white", anchor="center")
 
     # Level
     canvas.create_text(header_x, header_y, text="Lv:", font=("Bahnschrift", font_size), fill="white", anchor="center")
@@ -224,14 +268,22 @@ def load_my_pokemon_data():
 def main():
     global root, canvas
     root, canvas = create_window()
-    
+
+    # Initialize Global Variables
+    global header_y, font_size, current_pokemon_index, my_pokemon_list
+    header_y = 59
+    font_size = 16
+    current_pokemon_index = 0
     my_pokemon_list = load_my_pokemon_data()
     
-    canvas.pokemon_image = tk.PhotoImage(file='images/sprites/charizard.gif')
-    canvas.pokemon_image_item = canvas.create_image(105, 170, anchor='center', image=canvas.pokemon_image)
-    animate_gif(0)
-    
+    # Generate UI Elements
+    global name_ref, level_ref, stat_ref, ev_ref, iv_ref
+    name_ref = generate_pokemon_viewer(my_pokemon_list)
     level_ref, stat_ref, ev_ref, iv_ref = generate_stat_table(my_pokemon_list)
+
+    # Keybindings
+    root.bind("<Left>", change_selected_pokemon)
+    root.bind("<Right>", change_selected_pokemon)
 
     root.mainloop()
 
