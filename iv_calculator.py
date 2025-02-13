@@ -50,6 +50,7 @@ def change_selected_pokemon(event):
     canvas.itemconfig(canvas.pokemon_image_item, image=pokemon_image)
     canvas.pokemon_image = pokemon_image
     canvas.itemconfig(name_ref, text=my_pokemon_list[current_pokemon_index][0])
+    update_stat_table()
 
 
 def create_window():
@@ -161,7 +162,7 @@ def generate_stat_table(my_pokemon_list):
     iv_values = calculate_ivs(my_pokemon_list[0])
     iv_ref = []
     for i in range(0, 6):
-        iv_ref = canvas.create_text(column_initial, row_current, text=str(iv_values[i]), font=("Arial", font_size), fill="white", anchor="center")
+        iv_ref.append(canvas.create_text(column_initial, row_current, text=str(iv_values[i]), font=("Arial", font_size), fill="white", anchor="center"))
         row_current += row_spacing
         
     return level_ref, stat_ref, ev_ref, iv_ref
@@ -264,6 +265,20 @@ def load_my_pokemon_data():
     
     return my_pokemon_list
 
+
+def update_stat_table():
+    '''
+    Change stat table values after user changes current pokemon.
+    '''
+    canvas.itemconfig(level_ref, text=my_pokemon_list[current_pokemon_index][2])
+    for i in range(0, 6):
+        canvas.itemconfig(stat_ref[i], text=my_pokemon_list[current_pokemon_index][3][i])
+    for i in range(0, 6):
+        canvas.itemconfig(ev_ref[i], text=my_pokemon_list[current_pokemon_index][5][i])
+    iv_values = calculate_ivs(my_pokemon_list[current_pokemon_index])
+    for i in range(0, 6):
+        canvas.itemconfig(iv_ref[i], text=str(iv_values[i]))
+    
 
 def main():
     global root, canvas
