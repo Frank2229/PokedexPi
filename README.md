@@ -1,1 +1,1 @@
-
+This package recreates the pokedex from the game series and attempts to bring it into the real world. The goals of this project are to create an assistant/guide for serious and recreational players and to act as a collectable for die-hard fans.
