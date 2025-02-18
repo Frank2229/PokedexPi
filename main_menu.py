@@ -1,5 +1,4 @@
 import tkinter as tk
-import pygame
 import os
 
 def change_menu_selection(event):
@@ -45,6 +44,19 @@ def create_window():
     return root, canvas
 
 
+def profile_select():
+    '''Generate available user profiles.'''
+    menu_offset = 44
+    canvas.create_text(310, 48 + (0 * menu_offset), text="User 1: ", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (1 * menu_offset), text="User 2: ", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (2 * menu_offset), text="User 3: ", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (3 * menu_offset), text="User 4: ", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (4 * menu_offset), text="User 5: ", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w")
+    canvas.create_text(310, 48 + (5 * menu_offset), text="Delete User", font=("Bahnschrift", 16), fill="white", anchor="w")
+
+    return 0
+
+
 def open_app(file_name):
     '''Opens a selected application using a app name argument.'''
     os.system(f"{file_name}")
@@ -81,9 +93,11 @@ def main():
     global pokeball_id
     pokeball_id = canvas.create_image(130, 190, image=pokeball_image)
 
+    profile_select()
+    '''
     # Menu Options
     create_menu_options()
-
+    '''
     # Arrow Selector
     arrow_select_image = tk.PhotoImage(file='images/cursors/arrow.png')
     canvas.arrow_select_image = arrow_select_image
