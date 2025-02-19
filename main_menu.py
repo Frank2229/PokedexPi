@@ -44,17 +44,32 @@ def create_window():
     return root, canvas
 
 
-def profile_select():
+def load_profiles():
+    '''Load all user profiles from users.txt.'''
+    users = []
+    try:
+        with open("users.txt", 'r') as file:
+            for line in file:
+                users.append(line)
+    except FileNotFoundError:
+        with open("users.txt", 'w') as file:
+            file.write("")
+
+    return users
+
+
+def profile_select(users):
     '''Generate available user profiles.'''
     menu_offset = 44
-    canvas.create_text(310, 48 + (0 * menu_offset), text="User 1: ", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w")
-    canvas.create_text(310, 48 + (1 * menu_offset), text="User 2: ", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w")
-    canvas.create_text(310, 48 + (2 * menu_offset), text="User 3: ", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w")
-    canvas.create_text(310, 48 + (3 * menu_offset), text="User 4: ", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w")
-    canvas.create_text(310, 48 + (4 * menu_offset), text="User 5: ", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w")
-    canvas.create_text(310, 48 + (5 * menu_offset), text="Delete User", font=("Bahnschrift", 16), fill="white", anchor="w")
+    profiles_ref = []
+    for i in range(0, 5):
+        if i < len(users):
+            profiles_ref.append(canvas.create_text(310, 48 + (i * menu_offset), text="User " + str(i + 1) + ": " + users[i], font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w"))
+        else:
+            profiles_ref.append(canvas.create_text(310, 48 + (i * menu_offset), text="User " + str(i + 1) + ": Empty", font=("Bahnschrift", 16, 'italic'), fill="white", anchor="w"))
+    profiles_ref.append(canvas.create_text(310, 48 + (5 * menu_offset), text="Delete User", font=("Bahnschrift", 16), fill="white", anchor="w"))
 
-    return 0
+    return profiles_ref
 
 
 def open_app(file_name):
@@ -63,20 +78,31 @@ def open_app(file_name):
 
 
 def select_menu(event):
-    '''Based on the current selection, open the corresponding Python application'''
-    match current_selection:
-        case 0:
-            open_app('pokemon_search.py')
-        case 1:
-            open_app('region_map_viewer.py')
-        case 2:
-            open_app('type_chart.py')
-        case 3:
-            open_app('tm_list.py')
-        case 4:
-            open_app('move_list.py')
-        case 5:
-            open_app('iv_calculator.py')
+    '''
+    Based on the current selection, navigate through the menu.
+    If the user hasn't selected a profile, set the profile var and switch to menu selection.
+    '''
+    global is_profile_select, profiles_ref, selected_profile
+    if is_profile_select == True:
+        for i in range(0, 6):
+            canvas.delete(profiles_ref[i])
+        create_menu_options()
+        selected_profile = current_selection
+        is_profile_select = False
+    else:
+        match current_selection:
+            case 0:
+                open_app('pokemon_search.py')
+            case 1:
+                open_app('region_map_viewer.py')
+            case 2:
+                open_app('type_chart.py')
+            case 3:
+                open_app('tm_list.py')
+            case 4:
+                open_app('move_list.py')
+            case 5:
+                open_app('iv_calculator.py')
 
 
 def main():
@@ -93,11 +119,12 @@ def main():
     global pokeball_id
     pokeball_id = canvas.create_image(130, 190, image=pokeball_image)
 
-    profile_select()
-    '''
-    # Menu Options
-    create_menu_options()
-    '''
+    # Setup User Profiles
+    global is_profile_select, profiles_ref, selected_profile
+    is_profile_select = True
+    users = load_profiles()
+    profiles_ref = profile_select(users)
+
     # Arrow Selector
     arrow_select_image = tk.PhotoImage(file='images/cursors/arrow.png')
     canvas.arrow_select_image = arrow_select_image
