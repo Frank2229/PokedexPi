@@ -81,25 +81,33 @@ def generate_pokemon_viewer(my_pokemon_list):
     global current_pokemon_index
 
     # Name
-    name_ref = canvas.create_text(115, header_y, text=str(my_pokemon_list[current_pokemon_index][0]), font=("Bahnschrift", font_size), fill="white", anchor="center")
+    name_ref = canvas.create_text(120, header_y, text=str(my_pokemon_list[current_pokemon_index][0]), font=("Bahnschrift", font_size), fill="white", anchor="center")
+
+    # Level
+    canvas.create_text(100, header_y+25, text="Lv:", font=("Bahnschrift", 12), fill="white", anchor="center")
+    nature_ref = canvas.create_text(120, header_y+25, text=str(my_pokemon_list[0][2]), font=("Bahnschrift", 12), fill="white", anchor="center")
+
+    # Nature
+    canvas.create_text(100, header_y+47, text="Nature:", font=("Bahnschrift", 12), fill="white", anchor="center")
+    level_ref = canvas.create_text(150, header_y+47, text=str(my_pokemon_list[0][1]), font=("Bahnschrift", 12), fill="white", anchor="center")
 
     # Selector Arrows
     arrow_left_image = tk.PhotoImage(file='images/cursors/arrow_left.png')
     canvas.arrow_left_image = arrow_left_image
     global arrow_left_id
-    arrow_left_id = canvas.create_image(40, 160, image=arrow_left_image)
+    arrow_left_id = canvas.create_image(40, 190, image=arrow_left_image)
 
     arrow_right_image = tk.PhotoImage(file='images/cursors/arrow.png')
     canvas.arrow_right_image = arrow_right_image
     global arrow_right_id
-    arrow_right_id = canvas.create_image(190, 160, image=arrow_right_image)
+    arrow_right_id = canvas.create_image(190, 190, image=arrow_right_image)
 
     # Selected Pokemon Image
     canvas.pokemon_image = tk.PhotoImage(file='images/sprites/' + my_pokemon_list[current_pokemon_index][0].lower() + '.gif')
-    canvas.pokemon_image_item = canvas.create_image(120, 160, anchor='center', image=canvas.pokemon_image)
+    canvas.pokemon_image_item = canvas.create_image(120, 190, anchor='center', image=canvas.pokemon_image)
     animate_gif(0)
 
-    return name_ref
+    return name_ref, level_ref, nature_ref
 
 
 def generate_stat_table(my_pokemon_list):
@@ -110,16 +118,14 @@ def generate_stat_table(my_pokemon_list):
     Column 2: EVs
     Column 3: IVs
     '''
-    column_initial = 340
+    column_initial = 330
     column_spacing = 55
     row_top = 95
     row_current = row_top
     row_spacing = 36
-    header_x = 260
+    header_x = 265
 
-    # Level
-    canvas.create_text(header_x, header_y, text="Lv:", font=("Bahnschrift", font_size), fill="white", anchor="center")
-    level_ref = canvas.create_text(294, header_y, text=str(my_pokemon_list[0][2]), font=("Bahnschrift", font_size), fill="white", anchor="center")
+    canvas.create_text(350, 25, text="IV Calculator", font=("Bahnschrift", font_size), fill="white", anchor="center")
 
     # Column Titles
     canvas.create_text(column_initial+(0*column_spacing), header_y, text="Base", font=("Bahnschrift", font_size), fill="white", anchor="center")
@@ -165,7 +171,7 @@ def generate_stat_table(my_pokemon_list):
         iv_ref.append(canvas.create_text(column_initial, row_current, text=str(iv_values[i]), font=("Arial", font_size), fill="white", anchor="center"))
         row_current += row_spacing
         
-    return level_ref, stat_ref, ev_ref, iv_ref
+    return stat_ref, ev_ref, iv_ref
 
 def get_nature_mult(nature):
     '''
@@ -270,7 +276,8 @@ def update_stat_table():
     '''
     Change stat table values after user changes current pokemon.
     '''
-    canvas.itemconfig(level_ref, text=my_pokemon_list[current_pokemon_index][2])
+    canvas.itemconfig(level_ref, text=my_pokemon_list[current_pokemon_index][1])
+    canvas.itemconfig(nature_ref, text=my_pokemon_list[current_pokemon_index][2])
     for i in range(0, 6):
         canvas.itemconfig(stat_ref[i], text=my_pokemon_list[current_pokemon_index][3][i])
     for i in range(0, 6):
@@ -292,9 +299,9 @@ def main():
     my_pokemon_list = load_my_pokemon_data()
     
     # Generate UI Elements
-    global name_ref, level_ref, stat_ref, ev_ref, iv_ref
-    name_ref = generate_pokemon_viewer(my_pokemon_list)
-    level_ref, stat_ref, ev_ref, iv_ref = generate_stat_table(my_pokemon_list)
+    global name_ref, level_ref, nature_ref, stat_ref, ev_ref, iv_ref
+    name_ref, level_ref, nature_ref = generate_pokemon_viewer(my_pokemon_list)
+    stat_ref, ev_ref, iv_ref = generate_stat_table(my_pokemon_list)
 
     # Keybindings
     root.bind("<Left>", change_selected_pokemon)
