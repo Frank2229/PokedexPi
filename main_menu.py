@@ -50,7 +50,7 @@ def initialize_applications():
     applications_ref = []
     application_list = ['Pokémon Data', 'Region Maps', 'Type Chart', 'Move List', 'IV Calculator', 'BACK']
     for i in range(0, 6):
-        applications_ref.append(canvas.create_text(285, 48 + (i * 44), text=application_list[i], font=('Bahnschrift', 16), fill='white', anchor='w'))
+        applications_ref.append(canvas.create_text(300, 48 + (i * 44), text=application_list[i], font=('Bahnschrift', 16), fill='white', anchor='w'))
         canvas.itemconfigure(applications_ref[i], state="hidden")
 
     return applications_ref
@@ -62,10 +62,10 @@ def initialize_profiles(user_profiles):
     profiles_ref = []
     for i in range(0, 5):
         if i < len(user_profiles):
-            profiles_ref.append(canvas.create_text(285, 48 + (i * menu_offset), text='User ' + str(i + 1) + ': ' + user_profiles[i], font=('Bahnschrift', 16, 'italic'), fill='white', anchor='w'))
+            profiles_ref.append(canvas.create_text(300, 48 + (i * menu_offset), text='User ' + str(i + 1), font=('Bahnschrift', 16, 'italic'), fill='white', anchor='w'))
         else:
-            profiles_ref.append(canvas.create_text(285, 48 + (i * menu_offset), text='User ' + str(i + 1) + ': Empty', font=('Bahnschrift', 16, 'italic'), fill='white', anchor='w'))
-    profiles_ref.append(canvas.create_text(285, 48 + (5 * menu_offset), text='DELETE USER', font=('Bahnschrift', 16), fill='white', anchor='w'))
+            profiles_ref.append(canvas.create_text(300, 48 + (i * menu_offset), text='Empty', font=('Bahnschrift', 16, 'italic'), fill='white', anchor='w'))
+    profiles_ref.append(canvas.create_text(300, 48 + (5 * menu_offset), text='DELETE', font=('Bahnschrift', 16), fill='white', anchor='w'))
 
     return profiles_ref
 
@@ -106,13 +106,61 @@ def select_menu(event):
     Based on the current selection, navigate through the menu.
     If the user hasn't selected a profile, set the profile var and switch to menu selection.
     '''
-    global is_profile_select, profiles_ref, selected_profile
+    global is_profile_select, profiles_ref, selected_profile, current_selection
     if is_profile_select == True:
-        for i in range(0, 6):
-            canvas.itemconfigure(profiles_ref[i], state='hidden')
-            canvas.itemconfigure(applications_ref[i], state='normal')
-        selected_profile = current_selection
-        is_profile_select = False
+        match current_selection:
+            case 0:
+                if len(user_profiles) > current_selection:
+                    print("exists")
+                for i in range(0, 6):
+                    canvas.itemconfigure(profiles_ref[i], state='hidden')
+                    canvas.itemconfigure(applications_ref[i], state='normal')
+                selected_profile = current_selection
+                current_selection = 0
+                is_profile_select = False
+                canvas.coords(arrow_id, 290, 50)
+            case 1:
+                if len(user_profiles) > current_selection:
+                    print("exists")
+                for i in range(0, 6):
+                    canvas.itemconfigure(profiles_ref[i], state='hidden')
+                    canvas.itemconfigure(applications_ref[i], state='normal')
+                selected_profile = current_selection
+                current_selection = 0
+                is_profile_select = False
+                canvas.coords(arrow_id, 290, 50)
+            case 2:
+                if len(user_profiles) > current_selection:
+                    print("exists")
+                for i in range(0, 6):
+                    canvas.itemconfigure(profiles_ref[i], state='hidden')
+                    canvas.itemconfigure(applications_ref[i], state='normal')
+                selected_profile = current_selection
+                current_selection = 0
+                is_profile_select = False
+                canvas.coords(arrow_id, 290, 50)
+            case 3:
+                if len(user_profiles) > current_selection:
+                    print("exists")
+                for i in range(0, 6):
+                    canvas.itemconfigure(profiles_ref[i], state='hidden')
+                    canvas.itemconfigure(applications_ref[i], state='normal')
+                selected_profile = current_selection
+                current_selection = 0
+                is_profile_select = False
+                canvas.coords(arrow_id, 290, 50)
+            case 4:
+                if len(user_profiles) > current_selection:
+                    print("exists")
+                for i in range(0, 6):
+                    canvas.itemconfigure(profiles_ref[i], state='hidden')
+                    canvas.itemconfigure(applications_ref[i], state='normal')
+                selected_profile = current_selection
+                current_selection = 0
+                is_profile_select = False
+                canvas.coords(arrow_id, 290, 50)
+            case 5:
+                print("finish")
     else:
         match current_selection:
             case 0:
@@ -131,6 +179,8 @@ def select_menu(event):
                     canvas.itemconfigure(applications_ref[i], state='hidden')
                     canvas.itemconfigure(profiles_ref[i], state='normal')
                 is_profile_select = True
+                current_selection = 0
+                canvas.coords(arrow_id, 290, 50)
 
 
 def main():
@@ -151,7 +201,7 @@ def main():
     global arrow_id, up_menu_offset, down_menu_offset, current_selection
     arrow_select_image = tk.PhotoImage(file='images/cursors/arrow.png')
     canvas.arrow_select_image = arrow_select_image
-    arrow_id = canvas.create_image(270, 50, image=arrow_select_image)
+    arrow_id = canvas.create_image(290, 50, image=arrow_select_image)
     current_selection = 0
     up_menu_offset = -44
     down_menu_offset = 44
