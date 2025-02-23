@@ -111,7 +111,7 @@ def select_menu(event):
         match current_selection:
             case 0:
                 if len(user_profiles) > current_selection:
-                    print("exists")
+                    print('filler')
                 for i in range(0, 6):
                     canvas.itemconfigure(profiles_ref[i], state='hidden')
                     canvas.itemconfigure(applications_ref[i], state='normal')
@@ -121,7 +121,7 @@ def select_menu(event):
                 canvas.coords(arrow_id, 290, 50)
             case 1:
                 if len(user_profiles) > current_selection:
-                    print("exists")
+                    print('filler')
                 for i in range(0, 6):
                     canvas.itemconfigure(profiles_ref[i], state='hidden')
                     canvas.itemconfigure(applications_ref[i], state='normal')
@@ -131,7 +131,7 @@ def select_menu(event):
                 canvas.coords(arrow_id, 290, 50)
             case 2:
                 if len(user_profiles) > current_selection:
-                    print("exists")
+                    print('filler')
                 for i in range(0, 6):
                     canvas.itemconfigure(profiles_ref[i], state='hidden')
                     canvas.itemconfigure(applications_ref[i], state='normal')
@@ -141,7 +141,7 @@ def select_menu(event):
                 canvas.coords(arrow_id, 290, 50)
             case 3:
                 if len(user_profiles) > current_selection:
-                    print("exists")
+                    print('filler')
                 for i in range(0, 6):
                     canvas.itemconfigure(profiles_ref[i], state='hidden')
                     canvas.itemconfigure(applications_ref[i], state='normal')
@@ -151,7 +151,7 @@ def select_menu(event):
                 canvas.coords(arrow_id, 290, 50)
             case 4:
                 if len(user_profiles) > current_selection:
-                    print("exists")
+                    print('filler')
                 for i in range(0, 6):
                     canvas.itemconfigure(profiles_ref[i], state='hidden')
                     canvas.itemconfigure(applications_ref[i], state='normal')
@@ -160,17 +160,17 @@ def select_menu(event):
                 is_profile_select = False
                 canvas.coords(arrow_id, 290, 50)
             case 5:
-                print("finish")
+                print('filler')
     else:
         match current_selection:
             case 0:
                 os.system('pokemon_search.py')
             case 1:
-                os.system('region_map_viewer.py')
+                print('filler')
             case 2:
-                os.system('type_chart.py')
+                print('filler')
             case 3:
-                os.system('tm_list.py')
+                print('filler')
             case 4:
                 os.system('iv_calculator.py')
             case 5:
