@@ -171,7 +171,18 @@ def generate_stat_table(my_pokemon_list):
         iv_ref.append(canvas.create_text(column_initial, row_current, text=str(iv_values[i]), font=("Arial", font_size), fill="white", anchor="center"))
         row_current += row_spacing
         
-    return stat_ref, ev_ref, iv_ref
+    # Selector Arrows
+    arrow_ev_left_image = tk.PhotoImage(file='images/cursors/arrow_sm_left.png')
+    canvas.arrow_ev_left_image = arrow_ev_left_image
+    global arrow_ev_left_id
+    arrow_ev_left_id = canvas.create_image(400, 190, image=arrow_ev_left_image)
+
+    arrow_ev_right_image = tk.PhotoImage(file='images/cursors/arrow_sm.png')
+    canvas.arrow_ev_right_image = arrow_ev_right_image
+    global arrow_ev_right_id
+    arrow_ev_right_id = canvas.create_image(350, 190, image=arrow_ev_right_image)
+        
+    return stat_ref, ev_ref, iv_ref, arrow_ev_left_id, arrow_ev_right_id
 
 def get_nature_mult(nature):
     '''
@@ -299,9 +310,9 @@ def main():
     my_pokemon_list = load_my_pokemon_data()
     
     # Generate UI Elements
-    global name_ref, level_ref, nature_ref, stat_ref, ev_ref, iv_ref
+    global name_ref, level_ref, nature_ref, stat_ref, ev_ref, iv_ref, arrow_ev_left_id, arrow_ev_right_id
     name_ref, level_ref, nature_ref = generate_pokemon_viewer(my_pokemon_list)
-    stat_ref, ev_ref, iv_ref = generate_stat_table(my_pokemon_list)
+    stat_ref, ev_ref, iv_ref, arrow_ev_left_id, arrow_ev_right_id = generate_stat_table(my_pokemon_list)
 
     # Keybindings
     root.bind("<Left>", change_selected_pokemon)
