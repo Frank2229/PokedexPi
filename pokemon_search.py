@@ -18,6 +18,15 @@ def create_window():
 
 def main():
     root, canvas = create_window()
+    
+    # Arrow Selector
+    global arrow_id, up_menu_offset, down_menu_offset, current_selection
+    arrow_select_image = tk.PhotoImage(file='images/cursors/arrow.png')
+    canvas.arrow_select_image = arrow_select_image
+    arrow_id = canvas.create_image(290, 50, image=arrow_select_image)
+    current_selection = 0
+    up_menu_offset = -44
+    down_menu_offset = 44
 
     root.mainloop()
 
