@@ -1,3 +1,9 @@
+"""
+PokedexPi: A Multi-Module Handheld Pokémon Encyclopedia
+Built for Raspberry Pi 5 with KivyMD and Libcamera.
+Features: AI Image Identification, Multi-Gen Data Support, and Module Navigation.
+"""
+
 import os
 import time
 import torch
@@ -6,61 +12,72 @@ import threading
 import torch.nn as nn
 from torchvision import models, transforms
 from PIL import Image as PILImage
+
+# Kivy & UI Framework
 from kivy.config import Config
-from kivymd.uix.button import MDFloatingActionButton, MDIconButton
+from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 from kivy.core.window import Window
 from kivy.uix.scrollview import ScrollView
+from kivy.clock import Clock
+from kivy.graphics.texture import Texture
+from kivy.uix.image import Image
+from kivy.uix.carousel import Carousel
+
+# KivyMD Components
+from kivymd.app import MDApp
+from kivymd.uix.floatlayout import MDFloatLayout
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.gridlayout import MDGridLayout
+from kivymd.uix.card import MDCard
+from kivymd.uix.label import MDLabel
+from kivymd.uix.button import MDIconButton
 from kivymd.uix.menu import MDDropdownMenu
 
-# 1. HARDWARE & WINDOW CONFIG
-Config.set('graphics', 'fullscreen', '0') 
+# Hardware Interface
+from picamera2 import Picamera2
+
+# --- 1. GLOBAL WINDOW CONFIGURATION ---
+# Optimized for 7-inch Raspberry Pi Display
+Config.set('graphics', 'fullscreen', '0')
 Config.set('graphics', 'resizable', '0')
 Config.set('graphics', 'width', '720')
 Config.set('graphics', 'height', '1280')
 Config.set('graphics', 'position', 'custom')
 Config.set('graphics', 'top', '0')
 Config.set('graphics', 'left', '1920') 
-
 os.environ['KIVY_GL_BACKEND'] = 'sdl2'
 
-from kivymd.app import MDApp
-from kivymd.uix.floatlayout import MDFloatLayout
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDFloatingActionButton
-from kivymd.uix.card import MDCard
-from kivymd.uix.label import MDLabel
-from kivy.uix.image import Image
-from kivy.uix.carousel import Carousel # Required for swiping data
-from kivy.core.window import Window
-from kivy.clock import Clock
-from kivy.graphics.texture import Texture
-from picamera2 import Picamera2
 
-# --- AI & DATA WRAPPER ---
 class PokedexAI:
+    """Handles ResNet-18 model inference and local Pokedex data retrieval."""
+    
     def __init__(self, model_path, num_classes=149):
         self.device = torch.device("cpu")
-        self.model = models.resnet18(weights=None)
-        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes) 
         
+        # Load Architecture
+        self.model = models.resnet18(weights=None)
+        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
+        
+        # Load Weights
         if os.path.exists(model_path):
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
-        
         self.model.eval()
+
+        # Image Preprocessing Pipeline
         self.transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
 
+        # Load Pokedex JSON Data
         self.lore_path = 'assets/data/pokedex_data.json'
+        self.pokemon_lore = {}
         if os.path.exists(self.lore_path):
             with open(self.lore_path, 'r') as f:
                 self.pokemon_lore = json.load(f)
-        else:
-            self.pokemon_lore = {}
 
+        # Mapping Model Indices to Species Names
         self.class_names = [
             "Abra", "Aerodactyl", "Alakazam", "Arbok", "Arcanine", "Articuno", 
             "Beedrill", "Bellsprout", "Blastoise", "Bulbasaur", "Butterfree", 
@@ -90,6 +107,7 @@ class PokedexAI:
         ]
 
     def predict(self, image_path):
+        """Processes an image and returns (Species, Confidence Score)."""
         img = PILImage.open(image_path).convert('RGB')
         img_t = self.transform(img).unsqueeze(0)
         with torch.no_grad():
@@ -99,26 +117,21 @@ class PokedexAI:
         return self.class_names[pred.item()], conf.item()
 
     def get_info(self, name, gen):
-        # Access the nested JSON: data[generation][pokemon]
+        """Fetches Gen-specific data from the nested JSON dictionary."""
         gen_data = self.pokemon_lore.get(gen, {})
         return gen_data.get(name.lower(), {
             "species": "UNKNOWN", "description": "No data for this gen.",
             "learnset": [], "tm_moves": [], "locations": []
         })
 
-# --- MAIN APPLICATION ---
+
 class PokedexApp(MDApp):
+    """Main UI Application for the PokedexPi."""
+
     def build(self):
-        # 1. SET WINDOW PROPERTIES MANUALLY
+        # Window & State Initialization
         Window.borderless = True
-        Window.fullscreen = False  # Set to False so it respects our coordinates
-        
-        # 2. FORCE POSITION TO SECOND MONITOR
-        # Change 1920 to the exact width of your first monitor
-        Window.left = 0
-        Window.top = 0
-        
-        # 3. FORCE SIZE (Matches your Config)
+        Window.left, Window.top = 0, 0
         Window.size = (720, 1280)
         
         self.is_analyzing = False
@@ -126,352 +139,191 @@ class PokedexApp(MDApp):
         self.current_gen = "gen1"
         self.ai_brain = PokedexAI('models/first_poke_model.pth', num_classes=149)
         
-        self.root = MDFloatLayout()
-        self.root.add_widget(Image(source='assets/images/background.jpg', allow_stretch=True, keep_ratio=False))
-
-        # 1. Main Vertical Stack
-        self.main_stack = MDBoxLayout(
-            orientation='vertical',
-            size_hint=(1, 1),
-            pos_hint={'center_x': 0.5, 'center_y': 0.5},
-            padding=[50, 50, 50, 30], 
-            spacing=15 
-        )
-
-        # --- A. TOP BANNER ---
-        self.id_banner = MDCard(
-            size_hint=(1, None), height="100dp",
-            md_bg_color=[0.05, 0.38, 0.45, 1], radius=[15,],
-            opacity=1 
-        )
-        self.status_label = MDLabel(
-            text="SCAN POKÉMON", halign="center", theme_text_color="Custom", 
-            text_color=[1,1,1,1], bold=True, font_style="H4"
-        )
-        self.id_banner.add_widget(self.status_label)
-
-        # --- B. IMAGE WINDOW ---
-        self.display_card = MDCard(
-            size_hint=(1, 1), md_bg_color=[0,0,0,1], radius=[20,], 
-            elevation=2, padding=[20, 20, 20, 20] 
-        )
-        self.main_image = Image(fit_mode="contain") 
-        self.display_card.add_widget(self.main_image)
-
-        # --- C. THE FULL-WIDTH RESULTS CAROUSEL ---
-        # We increase the height slightly to 350dp to handle the bigger text
-        self.results_container = MDCard(
-            size_hint=(1, None), height="350dp", 
-            md_bg_color=[1,1,1,0.1], radius=[15,], opacity=1 
-        )
+        # UI Navigation System
+        self.sm = ScreenManager(transition=FadeTransition())
+        self.menu_screen = Screen(name='menu')
+        self.id_screen = Screen(name='identifier')
         
-        self.main_carousel = Carousel(direction='right', loop=True)
+        self.menu_screen.add_widget(self.create_menu_layout())
+        self.id_screen.add_widget(self.create_identifier_layout())
 
-        # Slide 1: Data (Title + Columns + Description Text)
-        self.bio_slide_container = MDBoxLayout(
-            orientation='vertical',
-            padding=[20, 10, 20, 10],
-            spacing=0
-        )
+        self.sm.add_widget(self.menu_screen)
+        self.sm.add_widget(self.id_screen)
 
-        # 1. Centered Title
-        self.bio_title = MDLabel(
-            text="DATA", halign="center", font_style="H5", bold=True,
-            theme_text_color="Custom", text_color=[1, 1, 1, 1],
-            size_hint_y=None, height="35dp"
-        )
-        
-        # 2. The Two-Column Grid (Property: Value)
-        self.grid_anchor = MDBoxLayout(
-            orientation='horizontal',
-            pos_hint={'center_x': 0.5},
-            size_hint=(None, None),
-            width="460dp",
-            height="175dp" # Adjusted to give columns enough room
-        )
-        self.bio_keys_label = MDLabel(
-            text="", halign="right", font_style="H6",
-            theme_text_color="Custom", text_color=[1, 1, 1, 1],
-            markup=True, size_hint_x=0.45
-        )
-        self.bio_values_label = MDLabel(
-            text="", halign="left", font_style="H6",
-            theme_text_color="Custom", text_color=[0, 1, 1, 1],
-            size_hint_x=0.55, padding=[10, 0]
-        )
-        self.grid_anchor.add_widget(self.bio_keys_label)
-        self.grid_anchor.add_widget(self.bio_values_label)
-
-        # 3. THE RAW DESCRIPTION TEXT (No Header)
-        self.bio_desc_label = MDLabel(
-            text="", 
-            halign="center", 
-            theme_text_color="Custom", 
-            text_color=[1, 1, 1, 1], 
-            italic=True, 
-            markup=True, 
-            font_style="H5",
-            line_height=1.1,
-            size_hint_y=None,
-            height="100dp"
-        )
-
-        # Assemble Slide 1
-        self.bio_slide_container.add_widget(self.bio_title)
-        self.bio_slide_container.add_widget(self.grid_anchor)
-        self.bio_slide_container.add_widget(self.bio_desc_label)
-        
-        # Slide 2: Learnset (Scrollable)
-        self.learn_slide_container = MDBoxLayout(
-            orientation='vertical',
-            padding=[10, 5, 10, 5],
-            spacing=0
-        )
-
-        # 1. Main Slide Title
-        self.learn_title = MDLabel(
-            text="LEARNSET", halign="center", font_style="H5", bold=True,
-            theme_text_color="Custom", text_color=[1, 1, 1, 1],
-            size_hint_y=None, height="40dp"
-        )
-
-        self.moves_scroll = ScrollView(size_hint=(1, 1), bar_width="4dp")
-        
-        # We'll use a BoxLayout inside the ScrollView so we can stack 
-        # a "Level Up" section and a "TM" section vertically.
-        self.scroll_content = MDBoxLayout(
-            orientation='vertical', 
-            adaptive_height=True,
-            spacing=10
-        )
-
-        self.moves_scroll.add_widget(self.scroll_content)
-        self.learn_slide_container.add_widget(self.learn_title)
-        self.learn_slide_container.add_widget(self.moves_scroll)
-
-        # Slide 3: Base Stats (Vertical Wrapper for Title + Columns)
-        self.stats_page_wrapper = MDBoxLayout(
-            orientation='vertical',
-            padding=[20, 10, 20, 10],
-            spacing=10
-        )
-
-        # --- THE CENTERED TITLE ---
-        self.stats_title = MDLabel(
-            text="BASE STATS",
-            halign="center",
-            theme_text_color="Custom",
-            text_color=[1, 1, 1, 1],
-            bold=True,
-            font_style="H5", # Larger font for the title
-            size_hint_y=None,
-            height="50dp"
-        )
-
-        # The Two-Column Container (Inside the wrapper)
-        self.stats_columns_layout = MDBoxLayout(
-            orientation='horizontal',
-            size_hint=(None, 1), 
-            width="450dp",       # Slightly wider to handle the big bars
-            pos_hint={'center_x': 0.5},
-            spacing=15
-        )
-
-        # Column A: Names and Values
-        self.stats_names_label = MDLabel(
-            text="", halign="right", theme_text_color="Custom", 
-            text_color=[1, 1, 1, 1], markup=True, font_style="H5",
-            size_hint_x=0.4
-        )
-
-        # Column B: The Bars
-        self.stats_bars_label = MDLabel(
-            text="", halign="left", theme_text_color="Custom", 
-            text_color=[0, 1, 1, 1], markup=True, font_style="H5",
-            size_hint_x=0.6
-        )
-
-        # Assemble Slide 3
-        self.stats_columns_layout.add_widget(self.stats_names_label)
-        self.stats_columns_layout.add_widget(self.stats_bars_label)
-        
-        self.stats_page_wrapper.add_widget(self.stats_title)
-        self.stats_page_wrapper.add_widget(self.stats_columns_layout)
-
-        # Slide 4: Catch Locations (Scrollable List)
-        self.loc_slide_container = MDBoxLayout(
-            orientation='vertical',
-            padding=[10, 5, 10, 5],
-            spacing=0
-        )
-
-        # 1. Title
-        self.loc_title = MDLabel(
-            text="LOCATIONS", halign="center", font_style="H5", bold=True,
-            theme_text_color="Custom", text_color=[1, 1, 1, 1],
-            size_hint_y=None, height="40dp"
-        )
-
-        # 2. Scrollable Grid for Areas
-        self.loc_scroll = ScrollView(size_hint=(1, 1), bar_width="4dp")
-        
-        self.loc_grid = MDGridLayout(
-            cols=3,             # Single column is better for long location names
-            adaptive_height=True, 
-            padding=[20, 10], 
-            spacing=10
-        )
-
-        # Inside add_move_section()
-        grid = MDGridLayout(
-            cols=3, 
-            adaptive_height=True, # This is the key
-            spacing=[10, 5], 
-            padding=[5, 5]
-        )
-
-        self.loc_scroll.add_widget(self.loc_grid)
-        self.loc_slide_container.add_widget(self.loc_title)
-        self.loc_slide_container.add_widget(self.loc_scroll)
-
-        # --- FINAL CAROUSEL ASSEMBLY ---
-        # Ensure you add them in the order you want to swipe
-        self.main_carousel.clear_widgets()
-        self.main_carousel.add_widget(self.bio_slide_container) # Slide 1: Data/Desc
-        self.main_carousel.add_widget(self.learn_slide_container) # Slide 2: Learnset
-        self.main_carousel.add_widget(self.stats_page_wrapper)   # Slide 3: Stats
-        self.main_carousel.add_widget(self.loc_slide_container)
-
-        self.results_container.add_widget(self.main_carousel)
-
-        # --- D. BOTTOM NAVIGATION BAR ---
-        self.nav_bar = MDBoxLayout(
-            orientation='horizontal', 
-            size_hint=(1, None), height="140dp",
-            spacing=80, # More space between the two big buttons
-            padding=[100, 10, 100, 10] 
-        )
-
-        # 1. HOME BUTTON (Manual Circular Card)
-        self.home_container = MDCard(
-            size_hint=(None, None), size=("100dp", "100dp"),
-            radius=[50,], # Makes it a perfect circle
-            md_bg_color=[0.2, 0.2, 0.2, 1],
-            elevation=4,
-            pos_hint={'center_y': 0.5}
-        )
-        self.home_btn = MDIconButton(
-            icon="home",
-            icon_size="64sp", # MASSIVE ICON
-            theme_icon_color="Custom",
-            icon_color=[1, 1, 1, 1],
-            pos_hint={'center_x': 0.5, 'center_y': 0.5}
-        )
-        self.home_container.add_widget(self.home_btn)
-
-        # 2. ACTION BUTTON (Manual Circular Card)
-        self.action_container = MDCard(
-            size_hint=(None, None), size=("100dp", "100dp"),
-            radius=[50,], 
-            md_bg_color=[0.05, 0.38, 0.45, 1],
-            elevation=4,
-            pos_hint={'center_y': 0.5}
-        )
-        self.action_btn = MDIconButton(
-            icon="camera-iris",
-            icon_size="64sp", # MASSIVE ICON
-            theme_icon_color="Custom",
-            icon_color=[1, 1, 1, 1],
-            pos_hint={'center_x': 0.5, 'center_y': 0.5}
-        )
-        self.action_btn.bind(on_press=self.handle_action)
-        self.action_container.add_widget(self.action_btn)
-
-        menu_items = [
-            {
-                "viewclass": "OneLineListItem",
-                "text": "GEN 1 (KANTO)",
-                "on_release": lambda x="gen1": self.set_gen(x),
-            },
-            {
-                "viewclass": "OneLineListItem",
-                "text": "GEN 2 (JOHTO)",
-                "on_release": lambda x="gen2": self.set_gen(x),
-            },
-            {
-                "viewclass": "OneLineListItem",
-                "text": "GEN 3 (HOENN)",
-                "on_release": lambda x="gen3": self.set_gen(x),
-            },
-        ]
-        
-        # We define the menu but don't open it yet
-        self.gen_menu = MDDropdownMenu(
-            items=menu_items,
-            width_mult=4,
-        )
-
-        # --- UPDATE NAV BAR ---
-        # Modify your self.nav_bar padding/spacing to fit 3 buttons
-        self.nav_bar.spacing = 40 
-        self.nav_bar.padding = [50, 10, 50, 10]
-
-        # 3. GEN SELECTION BUTTON (The Middle Button)
-        self.gen_container = MDCard(
-            size_hint=(None, None), size=("100dp", "100dp"),
-            radius=[50,], 
-            md_bg_color=[0.15, 0.15, 0.15, 1],
-            elevation=4,
-            pos_hint={'center_y': 0.5}
-        )
-        self.gen_btn = MDIconButton(
-            icon="pokeball",
-            icon_size="64sp",
-            theme_icon_color="Custom",
-            icon_color=[1, 1, 1, 1],
-            pos_hint={'center_x': 0.5, 'center_y': 0.5}
-        )
-        self.gen_btn.bind(on_release=self.open_gen_menu)
-        self.gen_container.add_widget(self.gen_btn)
-
-        # Add it to the nav bar between Home and Camera
-        self.nav_bar.add_widget(self.home_container)
-        self.nav_bar.add_widget(self.gen_container) # New Middle Button
-        self.nav_bar.add_widget(self.action_container)
-
-        # Assembly
-        self.main_stack.add_widget(self.id_banner)
-        self.main_stack.add_widget(self.display_card)
-        self.main_stack.add_widget(self.results_container)
-        self.main_stack.add_widget(self.nav_bar)
-
-        self.root.add_widget(self.main_stack)
-
-        # --- AUTO-FOCUS RE-ENABLE ---
+        # Hardware Camera Initialization
         try:
             self.picam2 = Picamera2()
             config = self.picam2.create_video_configuration(main={"size": (640, 480), "format": "RGB888"})
             self.picam2.configure(config)
-            
-            # This line forces the camera to hunt for focus constantly
-            self.picam2.set_controls({"AfMode": 2}) # 2 = Continuous Auto Focus
-            
+            self.picam2.set_controls({"AfMode": 2}) # Continuous Auto-Focus
             self.picam2.start()
         except Exception as e:
-            print(f"Camera Error: {e}")
+            print(f"Camera Initialization Failed: {e}")
             self.picam2 = None
 
+        # Start Camera Thread (30 FPS)
         self.camera_clock = Clock.schedule_interval(self.update_viewport, 1.0 / 30.0)
-        return self.root
+        
+        self.sm.current = 'menu'
+        return self.sm
 
-    def handle_action(self, *args):
-        if time.time() - self.last_press_time < 1.5: return
-        self.last_press_time = time.time()
-        if self.is_analyzing: self.enter_live_state()
-        else: self.take_photo()
+    # --- MENU MODULE ---
+    def create_menu_layout(self):
+        """Constructs the high-tech module launcher screen."""
+        layout = MDFloatLayout()
+        layout.add_widget(Image(source='assets/images/background.jpg', allow_stretch=True, keep_ratio=False))
+        
+        # Logo Assembly (Overlapping Logo and Pokeball)
+        logo_assembly = MDFloatLayout(size_hint=(1, None), height="220dp", pos_hint={'top': 0.9})
 
+        pokeball_img = Image(
+            source='assets/icons/pokeball.png', 
+            size_hint=(None, None), size=("110dp", "110dp"),
+            allow_stretch=True, keep_ratio=True,
+            pos_hint={'center_x': 0.8, 'center_y': 0.3}
+        )
+        pokedex_logo_img = Image(
+            source='assets/icons/pokedexpi_logo.png',
+            size_hint=(0.7, 1), fit_mode="contain",
+            pos_hint={'center_x': 0.42, 'top': 0.8}
+        )
+
+        logo_assembly.add_widget(pokeball_img)
+        logo_assembly.add_widget(pokedex_logo_img)
+        layout.add_widget(logo_assembly)
+
+        # Module Cards
+        center_box = MDBoxLayout(orientation='vertical', size_hint=(0.8, 0.55), pos_hint={'center_x': 0.5, 'top': 0.70}, spacing=30)
+        modules = [
+            ("POKÉMON IDENTIFIER", "camera-iris", "identifier"),
+            ("IV CALCULATOR", "calculator", "menu"),
+            ("REGIONAL MAPS", "map-legend", "menu")
+        ]
+
+        for name, icon, target in modules:
+            btn_card = MDCard(
+                orientation='vertical', padding=20, spacing=10,
+                md_bg_color=[0.05, 0.38, 0.45, 1], radius=[15,],
+                on_release=lambda x, t=target: self.change_screen(t)
+            )
+            btn_card.add_widget(MDIconButton(icon=icon, pos_hint={'center_x': 0.5}, theme_icon_color="Custom", icon_color=[1,1,1,1], icon_size="48sp"))
+            btn_card.add_widget(MDLabel(text=name, halign="center", theme_text_color="Custom", text_color=[1,1,1,1], bold=True))
+            center_box.add_widget(btn_card)
+        
+        layout.add_widget(center_box)
+        return layout
+
+    def change_screen(self, name):
+        """Handles Screen Transitions."""
+        self.sm.current = name
+
+    # --- IDENTIFIER MODULE ---
+    def create_identifier_layout(self):
+        """Constructs the Scanner UI with Carousel and Navigation Bar."""
+        root = MDFloatLayout()
+        root.add_widget(Image(source='assets/images/background.jpg', allow_stretch=True, keep_ratio=False))
+
+        self.main_stack = MDBoxLayout(orientation='vertical', size_hint=(1, 1), pos_hint={'center_x': 0.5, 'center_y': 0.5}, padding=[50, 50, 50, 30], spacing=15)
+
+        # Top ID Banner
+        self.id_banner = MDCard(size_hint=(1, None), height="100dp", md_bg_color=[0.05, 0.38, 0.45, 1], radius=[15,])
+        self.status_label = MDLabel(text="SCAN POKÉMON", halign="center", theme_text_color="Custom", text_color=[1,1,1,1], bold=True, font_style="H4")
+        self.id_banner.add_widget(self.status_label)
+
+        # Main Camera Viewport
+        self.display_card = MDCard(size_hint=(1, 1), md_bg_color=[0,0,0,1], radius=[20,])
+        self.main_image = Image(fit_mode="contain") 
+        self.display_card.add_widget(self.main_image)
+
+        # Results Data Carousel
+        self.results_container = MDCard(size_hint=(1, None), height="350dp", md_bg_color=[1,1,1,0.1], radius=[15,], opacity=0)
+        self.main_carousel = Carousel(direction='right', loop=True)
+        
+        # Build Slides
+        self._build_bio_slide()
+        self._build_learnset_slide()
+        self._build_stats_slide()
+        self._build_loc_slide()
+
+        self.results_container.add_widget(self.main_carousel)
+
+        # Navigation Bar Assembly
+        self._build_nav_bar()
+
+        self.main_stack.add_widget(self.id_banner)
+        self.main_stack.add_widget(self.display_card)
+        self.main_stack.add_widget(self.results_container)
+        self.main_stack.add_widget(self.nav_bar)
+        
+        # Generation Dropdown Menu
+        menu_items = [{"viewclass": "OneLineListItem", "text": f"GEN {i} ({['KANTO','JOHTO','HOENN'][i-1]})", "on_release": lambda x=f"gen{i}": self.set_gen(x)} for i in range(1,4)]
+        self.gen_menu = MDDropdownMenu(items=menu_items, width_mult=4)
+
+        root.add_widget(self.main_stack)
+        return root
+
+    # --- UI COMPONENT HELPERS ---
+    def _build_bio_slide(self):
+        self.bio_slide_container = MDBoxLayout(orientation='vertical', padding=[20, 10, 20, 10])
+        self.bio_title = MDLabel(text="DATA", halign="center", font_style="H5", bold=True, theme_text_color="Custom", text_color=[1,1,1,1], size_hint_y=None, height="35dp")
+        self.grid_anchor = MDBoxLayout(orientation='horizontal', size_hint=(None, None), width="460dp", height="175dp", pos_hint={'center_x': 0.5})
+        self.bio_keys_label = MDLabel(text="", halign="right", font_style="H6", theme_text_color="Custom", text_color=[1,1,1,1], markup=True, size_hint_x=0.45)
+        self.bio_values_label = MDLabel(text="", halign="left", font_style="H6", theme_text_color="Custom", text_color=[0,1,1,1], size_hint_x=0.55, padding=[10, 0])
+        self.grid_anchor.add_widget(self.bio_keys_label)
+        self.grid_anchor.add_widget(self.bio_values_label)
+        self.bio_desc_label = MDLabel(text="", halign="center", theme_text_color="Custom", text_color=[1,1,1,1], italic=True, markup=True, font_style="H5", size_hint_y=None, height="100dp")
+        self.bio_slide_container.add_widget(self.bio_title); self.bio_slide_container.add_widget(self.grid_anchor); self.bio_slide_container.add_widget(self.bio_desc_label)
+        self.main_carousel.add_widget(self.bio_slide_container)
+
+    def _build_learnset_slide(self):
+        self.learn_slide_container = MDBoxLayout(orientation='vertical', padding=[10, 5, 10, 5])
+        self.learn_title = MDLabel(text="LEARNSET", halign="center", font_style="H5", bold=True, theme_text_color="Custom", text_color=[1,1,1,1], size_hint_y=None, height="40dp")
+        self.moves_scroll = ScrollView(size_hint=(1, 1), bar_width="4dp")
+        self.scroll_content = MDBoxLayout(orientation='vertical', adaptive_height=True, spacing=10)
+        self.moves_scroll.add_widget(self.scroll_content)
+        self.learn_slide_container.add_widget(self.learn_title); self.learn_slide_container.add_widget(self.moves_scroll)
+        self.main_carousel.add_widget(self.learn_slide_container)
+
+    def _build_stats_slide(self):
+        self.stats_page_wrapper = MDBoxLayout(orientation='vertical', padding=[20, 10, 20, 10], spacing=10)
+        self.stats_title = MDLabel(text="BASE STATS", halign="center", font_style="H5", bold=True, theme_text_color="Custom", text_color=[1,1,1,1], size_hint_y=None, height="50dp")
+        self.stats_columns_layout = MDBoxLayout(orientation='horizontal', size_hint=(None, 1), width="450dp", pos_hint={'center_x': 0.5})
+        self.stats_names_label = MDLabel(text="", halign="right", font_style="H5", theme_text_color="Custom", text_color=[1,1,1,1], markup=True, size_hint_x=0.4)
+        self.stats_bars_label = MDLabel(text="", halign="left", font_style="H5", theme_text_color="Custom", text_color=[0,1,1,1], markup=True, size_hint_x=0.6)
+        self.stats_columns_layout.add_widget(self.stats_names_label); self.stats_columns_layout.add_widget(self.stats_bars_label)
+        self.stats_page_wrapper.add_widget(self.stats_title); self.stats_page_wrapper.add_widget(self.stats_columns_layout)
+        self.main_carousel.add_widget(self.stats_page_wrapper)
+
+    def _build_loc_slide(self):
+        self.loc_slide_container = MDBoxLayout(orientation='vertical', padding=[10, 5, 10, 5])
+        self.loc_title = MDLabel(text="LOCATIONS", halign="center", font_style="H5", bold=True, theme_text_color="Custom", text_color=[1,1,1,1], size_hint_y=None, height="40dp")
+        self.loc_scroll = ScrollView(size_hint=(1, 1), bar_width="4dp")
+        self.loc_grid = MDGridLayout(cols=3, adaptive_height=True, padding=[20, 10], spacing=10)
+        self.loc_scroll.add_widget(self.loc_grid)
+        self.loc_slide_container.add_widget(self.loc_title); self.loc_slide_container.add_widget(self.loc_scroll)
+        self.main_carousel.add_widget(self.loc_slide_container)
+
+    def _build_nav_bar(self):
+        self.nav_bar = MDBoxLayout(orientation='horizontal', size_hint=(1, None), height="140dp", spacing=40, padding=[50, 10, 50, 10])
+        # Buttons: Home, Gen Selector, Action (Scan)
+        self.home_container = MDCard(size_hint=(None, None), size=("100dp", "100dp"), radius=[50,], md_bg_color=[0.2, 0.2, 0.2, 1])
+        self.home_btn = MDIconButton(icon="home", icon_size="64sp", theme_icon_color="Custom", icon_color=[1,1,1,1], pos_hint={'center_x': 0.5, 'center_y': 0.5}, on_release=lambda x: self.change_screen('menu'))
+        self.home_container.add_widget(self.home_btn)
+
+        self.gen_container = MDCard(size_hint=(None, None), size=("100dp", "100dp"), radius=[50,], md_bg_color=[0.15, 0.15, 0.15, 1])
+        self.gen_btn = MDIconButton(icon="pokeball", icon_size="64sp", theme_icon_color="Custom", icon_color=[1,1,1,1], pos_hint={'center_x': 0.5, 'center_y': 0.5}, on_release=self.open_gen_menu)
+        self.gen_container.add_widget(self.gen_btn)
+
+        self.action_container = MDCard(size_hint=(None, None), size=("100dp", "100dp"), radius=[50,], md_bg_color=[0.05, 0.38, 0.45, 1])
+        self.action_btn = MDIconButton(icon="camera-iris", icon_size="64sp", theme_icon_color="Custom", icon_color=[1,1,1,1], pos_hint={'center_x': 0.5, 'center_y': 0.5}, on_press=self.handle_action)
+        self.action_container.add_widget(self.action_btn)
+
+        self.nav_bar.add_widget(self.home_container); self.nav_bar.add_widget(self.gen_container); self.nav_bar.add_widget(self.action_container)
+
+    # --- RUNTIME LOGIC ---
     def update_viewport(self, dt):
-        if not self.is_analyzing and self.picam2:
+        """Updates the Live Viewport texture with the latest camera frame."""
+        if self.sm.current == 'identifier' and not self.is_analyzing and self.picam2:
             frame = self.picam2.capture_array()
             if frame is not None:
                 if not self.main_image.texture:
@@ -480,233 +332,113 @@ class PokedexApp(MDApp):
                 self.main_image.texture.flip_vertical()
                 self.main_image.canvas.ask_update()
 
+    def handle_action(self, *args):
+        """Toggles between Live View and Analysis mode."""
+        if time.time() - self.last_press_time < 1.5: return
+        self.last_press_time = time.time()
+        if self.is_analyzing: self.enter_live_state()
+        else: self.take_photo()
+
     def take_photo(self, *args):
-        Clock.unschedule(self.camera_clock)
+        """Captures a frame and initiates AI Analysis thread."""
         self.is_analyzing = True
         filename = f"test_images/scan_{int(time.time())}.jpg"
         if self.picam2: self.picam2.capture_file(filename)
         self.main_image.texture = None
         self.main_image.source = filename
-        self.id_banner.opacity = 1
         self.action_btn.icon = "refresh"
         self.action_btn.md_bg_color = [0.7, 0.1, 0.1, 1]
-        Window.canvas.ask_update()
         threading.Thread(target=self.run_ai, args=(filename,)).start()
 
     def run_ai(self, filename):
-        # 1. Run the Prediction
+        """Off-thread inference runner."""
         name, conf = self.ai_brain.predict(filename)
-        
-        # 2. Update the UI
         Clock.schedule_once(lambda dt: self.show_result(name, conf), 0)
-        
-        # 3. --- THE INSTANT DELETE FIX ---
-        # We delete it here so it's gone before the user even sees the result
-        try:
-            # Short sleep to prevent 'File in use' errors on some systems
-            time.sleep(0.1) 
-            if os.path.exists(filename):
-                os.remove(filename)
-                print(f"[AI-CLEANUP] Prediction complete. Deleted: {filename}")
-        except Exception as e:
-            print(f"[ERROR] Auto-delete failed: {e}")
+        time.sleep(0.1) # Prevent file lock before cleanup
+        if os.path.exists(filename): os.remove(filename)
 
     def show_result(self, name, conf):
+        """Updates UI slides with analyzed Pokémon data."""
         if conf > 0.40:
             info = self.ai_brain.get_info(name, self.current_gen)
             self.status_label.text = f"MATCH FOUND: {name.upper()}"
             self.scroll_content.clear_widgets()
             
-            # Retrieve Data from JSON
-            species = info.get('species','').upper()
-            poke_type = info.get('type','').capitalize()
-            height = info.get('height','')
-            weight = info.get('weight','')
-            ability = info.get('ability','')
-            hidden_ability = info.get('hidden_ability','')
-            
-            # --- POPULATE THE TWO-COLUMN LAYOUT ---
-            
-            # Set the static property names with bold markup
+            # BIO SLIDE
             self.bio_keys_label.text = "[b]SPECIES:\nTYPE:\nHT:\nWT:\nABILITY:\nH. ABILITY:[/b]"
-            
-            # Set the dynamic data values
-            self.bio_values_label.text = (
-                f"{species}\n"
-                f"{poke_type}\n"
-                f"{height}\n"
-                f"{weight}\n"
-                f"{ability}\n"
-                f"{hidden_ability}"
-            )
-            
-            # Populate Raw Description Text at the bottom
+            self.bio_values_label.text = f"{info.get('species','').upper()}\n{info.get('type','').capitalize()}\n{info.get('height','')}\n{info.get('weight','')}\n{info.get('ability','')}\n{info.get('hidden_ability','None')}"
             self.bio_desc_label.text = f"\"{info.get('description', 'No biometric lore available.')}\""
             
-            # --- POPULATE LEARNSET GRID ---
-            # --- SECTION 1: LEVEL UP ---
+            # LEARNSET SLIDE
             self.add_move_section("BY LEVEL UP", info.get('learnset', []))
-            
-            # --- SECTION 2: TM / MACHINE ---
-            # Assuming your JSON has a key called 'tm_moves' or similar
             self.add_move_section("BY TM / HM", info.get('tm_moves', []))
 
-            # --- SLIDE 3: BASE STATS (The Dual-Column Fix) ---
+            # STATS SLIDE
             base_stats = info.get('base_stats', {})
-            names_text = ""
-            bars_text = ""
-            
-            # Mapping long API names to clean 3-letter Pokedex shorts
-            stat_map = {
-                "HP": "HP", 
-                "ATTACK": "ATK", 
-                "DEFENSE": "DEF", 
-                "SPECIAL-ATTACK": "SPA", 
-                "SPECIAL-DEFENSE": "SPD", 
-                "SPEED": "SPE"
-            }
-            
+            names_text, bars_text = "", ""
+            stat_map = {"HP": "HP", "ATTACK": "ATK", "DEFENSE": "DEF", "SPECIAL-ATTACK": "SPA", "SPECIAL-DEFENSE": "SPD", "SPEED": "SPE"}
             for s_name, s_val in base_stats.items():
                 short_name = stat_map.get(s_name.upper(), s_name[:3].upper())
-                
-                # Column 1: Labels and Values (Left Aligned in its box)
                 names_text += f"[b]{short_name}:[/b] {str(s_val).zfill(3)}\n"
-                
-                # Column 2: Wide Bars (Left Aligned in its box)
-                # Divisor of 5 for wide bars (adjust to 10 if they hit the edge)
-                bar_count = max(1, int(s_val / 5)) 
+                bar_count = max(1, int(s_val / 15)) 
                 bars_text += f"{'█' * bar_count}\n"
-            
-            # Update the two separate labels we defined in build()
             self.stats_names_label.text = names_text
             self.stats_bars_label.text = bars_text
 
-            # --- POPULATE LOCATIONS ---
+            # LOCATIONS SLIDE
             self.loc_grid.clear_widgets()
             loc_data = info.get('locations', [])
-            
             if not loc_data:
-                # Fallback for Starters, Fossils, or Legendaries
-                none_label = MDLabel(
-                    text="[i]Special Encounter Only\n(Gift, Trade, or Static)[/i]",
-                    markup=True, theme_text_color="Custom", text_color=[0.7, 0.7, 0.7, 1],
-                    halign="center", size_hint_y=None, height="100dp"
-                )
-                self.loc_grid.add_widget(none_label)
+                self.loc_grid.add_widget(MDLabel(text="[i]Special Encounter Only[/i]", markup=True, halign="center", theme_text_color="Custom", text_color=[1,1,1,1]))
             else:
                 for entry in loc_data:
-                    loc_text = (
-                        f"[b]{entry['area']}[/b]\n"
-                        f"[size=14]Method: {entry['method']} | Chance: {entry['chance']}[/size]"
-                    )
-                    loc_label = MDLabel(
-                        text=loc_text,
-                        markup=True,
-                        theme_text_color="Custom",
-                        text_color=[1, 1, 1, 1],
-                        halign="left",
-                        size_hint_y=None,
-                        height="60dp"
-                    )
-                    self.loc_grid.add_widget(loc_label)
+                    self.loc_grid.add_widget(MDLabel(text=f"[b]{entry['area']}[/b]\n[size=14]{entry['method']} | {entry['chance']}[/size]", markup=True, theme_text_color="Custom", text_color=[1,1,1,1], halign="left", size_hint_y=None, height="60dp"))
 
-            # --- UI STATE UPDATE ---
             self.results_container.opacity = 1  
             self.main_carousel.index = 0       
             
-            # --- SPRITE SWAP ---
+            # SPRITE LOGIC
             sprite_path = f"assets/sprites/{name.lower()}.png"
-                
             if os.path.exists(sprite_path):
                 self.main_image.texture = None
                 self.main_image.source = sprite_path
-            
         else:
             self.status_label.text = "UNKNOWN POKÉMON"
-            self.desc_label.text = "Biometric signature not found in database. Adjust scan angle."
-            self.results_container.opacity = 1
-            self.main_carousel.index = 1 
+            self.results_container.opacity = 0
         
-        Window.canvas.ask_update()
-
     def add_move_section(self, title, moves_list):
+        """Dynamically builds move headers and grids."""
         if not moves_list: return
-
-        # 1. Header (Level Up or TMs)
-        header = MDLabel(
-            text=f"{title}", halign="center", font_style="Button",
-            theme_text_color="Custom", text_color=[0, 1, 1, 1],
-            size_hint_y=None, height="40dp", markup=True
-        )
-        self.scroll_content.add_widget(header)
-
-        # 2. Grid setup
+        self.scroll_content.add_widget(MDLabel(text=f"{title}", halign="center", font_style="Button", theme_text_color="Custom", text_color=[1, 1, 1, 1], size_hint_y=None, height="40dp", markup=True))
         grid = MDGridLayout(cols=3, adaptive_height=True, spacing=[10, 5], padding=[5, 5])
-        
         for item in moves_list:
-            lvl = item.get('level', '??')
-            move = item.get('move', 'Unknown')
-            m_type = item.get('type', 'Normal')
-            
-            # --- THE SIMPLE OVERRIDE ---
-            # If the level is 0 (API default for TMs) or explicitly "TM", show "TM"
-            # Otherwise, show "L" + the number
-            lvl_str = str(lvl)
-            if lvl_str == "0" or lvl_str == "TM":
-                display_lvl = "TM"
-            else:
-                display_lvl = f"L{lvl_str}"
-            
-            move_label = MDLabel(
-                text=f"[b]{display_lvl}:[/b] {move}\n[size=12]({m_type})[/size]",
-                markup=True, theme_text_color="Custom", text_color=[1, 1, 1, 1],
-                halign="center", size_hint_y=None, height="60dp", font_style="H6"
-            )
-            grid.add_widget(move_label)
-        
-        # 3. Add to scroll content
+            lvl = str(item.get('level', '??'))
+            display_lvl = "TM" if lvl in ["0", "TM"] else f"L{lvl}"
+            grid.add_widget(MDLabel(text=f"[b]{display_lvl}:[/b] {item.get('move', 'Unknown')}\n[size=12]({item.get('type', 'Normal')})[/size]", markup=True, theme_text_color="Custom", text_color=[1, 1, 1, 1], halign="center", size_hint_y=None, height="60dp"))
         self.scroll_content.add_widget(grid)
 
     def enter_live_state(self, *args):
+        """Reset UI for live scanning."""
         self.is_analyzing = False
-        self.id_banner.opacity = 1
         self.status_label.text = "SCAN POKÉMON"
         self.results_container.opacity = 0
         self.main_image.source = ''
         self.main_image.texture = None
         self.action_btn.icon = "camera-iris"
         self.action_btn.md_bg_color = [0.05, 0.38, 0.45, 1]
-        self.camera_clock = Clock.schedule_interval(self.update_viewport, 1.0 / 30.0)
-        Window.canvas.ask_update()
 
     def open_gen_menu(self, instance):
-        # This tells the menu where to appear (on top of the pokeball button)
         self.gen_menu.caller = instance
         self.gen_menu.open()
 
     def set_gen(self, gen_selection):
-        # 1. Update the internal generation variable
+        """Sets active generation and updates UI theme."""
         self.current_gen = gen_selection
         self.gen_menu.dismiss()
-        
-        # 2. Update UI colors for visual feedback
-        color_map = {
-            "gen1": [0.05, 0.38, 0.45, 1], # Teal (Kanto)
-            "gen2": [0.7, 0.5, 0.1, 1],    # Gold (Johto)
-            "gen3": [0.6, 0.1, 0.1, 1]     # Ruby (Hoenn)
-        }
-        
+        color_map = {"gen1": [0.05, 0.38, 0.45, 1], "gen2": [0.7, 0.5, 0.1, 1], "gen3": [0.6, 0.1, 0.1, 1]}
         self.id_banner.md_bg_color = color_map.get(gen_selection, [0.2, 0.2, 0.2, 1])
-        
-        # 3. Update the label so you know what gen you're in
-        gen_display = gen_selection.replace("gen", "GENERATION ")
-        self.status_label.text = f"ACTIVE: {gen_display}"
-        
-        # 4. If we were looking at a result, reset to scan mode to avoid data mismatch
-        if self.is_analyzing:
-            self.enter_live_state()
-            
-        print(f"Switched to {gen_selection}")
+        self.status_label.text = f"ACTIVE: {gen_selection.replace('gen', 'GENERATION ')}"
+        if self.is_analyzing: self.enter_live_state()
 
 if __name__ == "__main__":
     PokedexApp().run()
