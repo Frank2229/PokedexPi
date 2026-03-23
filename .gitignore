@@ -1,3 +1,9 @@
+pokedex_env/
+__pycache__/
+*.pyc
+scan_*.jpg
+.DS_Store
+
 # Machine Learning Files
 *.pth
 *.pt
