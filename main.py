@@ -22,6 +22,7 @@ from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.image import Image
 from kivy.uix.carousel import Carousel
+from kivy.animation import Animation
 
 # KivyMD Components
 from kivymd.app import MDApp
@@ -47,6 +48,32 @@ Config.set('graphics', 'top', '0')
 Config.set('graphics', 'left', '1920') 
 os.environ['KIVY_GL_BACKEND'] = 'sdl2'
 
+# --- 2. REGIONAL COORDINATE DATABASE ---
+MAP_DATA = {
+    "KANTO": {
+        "Pallet Town": {"pos": (0.24, 0.22), "info": "Home of Prof. Oak."},
+        "Viridian City": {"pos": (0.24, 0.35), "info": "Gym: Giovanni (Ground)."},
+        "Pewter City": {"pos": (0.24, 0.72), "info": "Gym: Brock (Rock)."},
+        "Cerulean City": {"pos": (0.71, 0.81), "info": "Gym: Misty (Water)."},
+        "Vermilion City": {"pos": (0.71, 0.45), "info": "Gym: Lt. Surge (Electric)."},
+        "Lavender Town": {"pos": (0.88, 0.58), "info": "Pokemon Tower."},
+        "Celadon City": {"pos": (0.58, 0.58), "info": "Gym: Erika (Grass)."},
+        "Saffron City": {"pos": (0.71, 0.58), "info": "Gym: Sabrina (Psychic)."},
+        "Fuchsia City": {"pos": (0.58, 0.22), "info": "Gym: Koga (Poison)."},
+        "Cinnabar Island": {"pos": (0.24, 0.10), "info": "Gym: Blaine (Fire)."},
+        "Indigo Plateau": {"pos": (0.12, 0.85), "info": "The Pokemon League."}
+    },
+    "JOHTO": {
+        "New Bark Town": {"pos": (0.85, 0.35), "info": "Home of Prof. Elm."},
+        "Goldenrod City": {"pos": (0.32, 0.40), "info": "Gym: Whitney (Normal)."},
+        "Ecruteak City": {"pos": (0.45, 0.65), "info": "Gym: Morty (Ghost)."}
+    },
+    "HOENN": {
+        "Littleroot Town": {"pos": (0.25, 0.15), "info": "Home of Prof. Birch."},
+        "Rustboro City": {"pos": (0.15, 0.55), "info": "Gym: Roxanne (Rock)."},
+        "Ever Grande City": {"pos": (0.92, 0.15), "info": "Hoenn League."}
+    }
+}
 
 class PokedexAI:
     """Handles ResNet-18 model inference and local Pokedex data retrieval."""
@@ -124,6 +151,159 @@ class PokedexAI:
             "learnset": [], "tm_moves": [], "locations": []
         })
 
+class MapScreen(Screen):
+    """Module for regional map navigation and POI discovery."""
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.layout = MDFloatLayout()
+        
+        # 1. THE BACKGROUND (Absolute Bottom)
+        self.layout.add_widget(Image(
+            source='assets/images/background.jpg', 
+            allow_stretch=True, keep_ratio=False
+        ))
+        
+        # 2. THE MAP CONTAINER 
+        # We use a height based on width to maintain a standard map aspect ratio
+        self.map_frame = MDFloatLayout(
+            size_hint=(0.95, None),
+            height=Window.width * 0.95 * (0.75), 
+            pos_hint={'center_x': 0.5, 'center_y': 0.55}
+        )
+
+        # 3. THE MAP IMAGE (Base layer of the frame)
+        self.map_image = Image(
+            source='assets/maps/kanto.jpg', 
+            size_hint=(1, 1), 
+            pos_hint={'center_x': 0.5, 'center_y': 0.5},
+            allow_stretch=True, 
+            keep_ratio=True
+        )
+        
+        # 4. THE SCAN LINE (Overlays map image)
+        self.scan_line = MDCard(
+            size_hint=(1, None), height="3dp",
+            md_bg_color=[0, 1, 1, 0.6], 
+            pos_hint={'center_x': 0.5, 'center_y': 1},
+            opacity=0
+        )
+
+        # IMPORTANT: Add Map FIRST, then Scan Line to ensure correct Z-indexing
+        self.map_frame.add_widget(self.map_image)
+        self.map_frame.add_widget(self.scan_line)
+        self.layout.add_widget(self.map_frame)
+        
+        # 5. UI OVERLAYS (Header and Info Card)
+        self.region_label = MDLabel(
+            text="KANTO REGION", halign="center", font_style="H4",
+            theme_text_color="Custom", text_color=[1, 1, 1, 1],
+            bold=True, pos_hint={'center_y': 0.88}
+        )
+        self.layout.add_widget(self.region_label)
+
+        self.info_card = MDCard(
+            size_hint=(0.9, None), 
+            height="100dp",
+            pos_hint={'center_x': 0.5, 'y': 0.12},
+            md_bg_color=[0, 0, 0, 0.75], 
+            radius=[15,],
+            opacity=0, 
+            elevation=2
+        )
+        
+        self.location_info_label = MDLabel(
+            text="", halign="center", theme_text_color="Custom",
+            text_color=[0, 1, 1, 1], bold=True, padding=[15, 10],
+            markup=True, font_style="H6" 
+        )
+        self.info_card.add_widget(self.location_info_label)
+        self.layout.add_widget(self.info_card)
+
+        # 6. NAVIGATION BAR
+        self._build_nav_bar()
+        
+        # 7. REGION SELECTION DROPDOWN
+        map_items = [
+            {"viewclass": "OneLineListItem", "text": "KANTO", "on_release": lambda x="KANTO", i="kanto.jpg": self.change_map(x, i)},
+            {"viewclass": "OneLineListItem", "text": "JOHTO", "on_release": lambda x="JOHTO", i="johto.jpg": self.change_map(x, i)},
+            {"viewclass": "OneLineListItem", "text": "HOENN", "on_release": lambda x="HOENN", i="hoenn.jpg": self.change_map(x, i)},
+        ]
+        self.map_menu = MDDropdownMenu(items=map_items, width_mult=4)
+
+        self.add_widget(self.layout)
+
+    def _build_nav_bar(self):
+        self.nav_bar = MDBoxLayout(
+            orientation='horizontal', size_hint=(1, None), height="140dp",
+            spacing=40, padding=[50, 10, 50, 10], pos_hint={'center_x': 0.5, 'y': 0}
+        )
+        
+        # Home
+        home_box = MDCard(size_hint=(None, None), size=("100dp", "100dp"), radius=[50,], md_bg_color=[0.2, 0.2, 0.2, 1])
+        home_box.add_widget(MDIconButton(icon="home", icon_size="64sp", theme_icon_color="Custom", icon_color=[1,1,1,1], pos_hint={'center_x': 0.5, 'center_y': 0.5}, on_release=lambda x: self.go_home()))
+        
+        # Menu
+        menu_box = MDCard(size_hint=(None, None), size=("100dp", "100dp"), radius=[50,], md_bg_color=[0.15, 0.15, 0.15, 1])
+        menu_box.add_widget(MDIconButton(icon="map-search", icon_size="64sp", theme_icon_color="Custom", icon_color=[1,1,1,1], pos_hint={'center_x': 0.5, 'center_y': 0.5}, on_release=self.open_map_menu))
+        
+        # GPS
+        gps_box = MDCard(size_hint=(None, None), size=("100dp", "100dp"), radius=[50,], md_bg_color=[0.05, 0.38, 0.45, 1])
+        gps_box.add_widget(MDIconButton(icon="crosshairs-gps", icon_size="64sp", theme_icon_color="Custom", icon_color=[1,1,1,1], pos_hint={'center_x': 0.5, 'center_y': 0.5}, on_release=self.start_gps_scan))
+
+        self.nav_bar.add_widget(home_box); self.nav_bar.add_widget(menu_box); self.nav_bar.add_widget(gps_box)
+        self.layout.add_widget(self.nav_bar)
+
+    def start_gps_scan(self, *args):
+        self.info_card.opacity = 0 
+        self.scan_line.opacity = 1
+        self.scan_line.pos_hint = {'center_y': 1}
+        
+        # Animation requires: from kivy.animation import Animation at the top of main.py
+        anim = Animation(pos_hint={'center_y': 0}, duration=1.5, t='in_out_quad')
+        anim.bind(on_complete=lambda *x: self.plot_locations(self.region_label.text.split()[0]))
+        anim.start(self.scan_line)
+
+    def plot_locations(self, region_name):
+        # 1. Clean up only existing markers
+        for child in list(self.map_frame.children):
+            if isinstance(child, MDIconButton) and child.icon == "map-marker-radius":
+                self.map_frame.remove_widget(child)
+
+        region_key = region_name.upper()
+        if region_key in MAP_DATA:
+            for loc_name, data in MAP_DATA[region_key].items():
+                marker = MDIconButton(
+                    icon="map-marker-radius",
+                    theme_icon_color="Custom", icon_color=[1, 0, 0, 1],
+                    pos_hint={'center_x': data['pos'][0], 'center_y': data['pos'][1]},
+                    on_release=lambda x, n=loc_name, i=data['info']: self.update_info_bar(n, i)
+                )
+                self.map_frame.add_widget(marker)
+        
+        Animation(opacity=0, duration=0.5).start(self.scan_line)
+
+    def update_info_bar(self, name, info):
+        self.location_info_label.text = (
+            f"[size=28sp][b]{name.upper()}[/b][/size]\n"
+            f"[size=20sp]{info}[/size]"
+        )
+        Animation(opacity=1, duration=0.3).start(self.info_card)
+
+    def open_map_menu(self, instance):
+        self.map_menu.caller = instance
+        self.map_menu.open()
+
+    def change_map(self, name, img_path):
+        self.region_label.text = f"{name} REGION"
+        self.map_image.source = f'assets/maps/{img_path}'
+        self.map_menu.dismiss()
+        self.info_card.opacity = 0
+        # Clear markers when switching maps
+        self.plot_locations("CLEAR")
+
+    def go_home(self):
+        self.manager.current = 'menu'
 
 class PokedexApp(MDApp):
     """Main UI Application for the PokedexPi."""
@@ -143,12 +323,14 @@ class PokedexApp(MDApp):
         self.sm = ScreenManager(transition=FadeTransition())
         self.menu_screen = Screen(name='menu')
         self.id_screen = Screen(name='identifier')
+        self.map_screen = MapScreen(name='maps')
         
         self.menu_screen.add_widget(self.create_menu_layout())
         self.id_screen.add_widget(self.create_identifier_layout())
 
         self.sm.add_widget(self.menu_screen)
         self.sm.add_widget(self.id_screen)
+        self.sm.add_widget(self.map_screen)
 
         # Hardware Camera Initialization
         try:
@@ -197,7 +379,7 @@ class PokedexApp(MDApp):
         modules = [
             ("POKÉMON IDENTIFIER", "camera-iris", "identifier"),
             ("IV CALCULATOR", "calculator", "menu"),
-            ("REGIONAL MAPS", "map-legend", "menu")
+            ("REGIONAL MAPS", "map-legend", "maps")
         ]
 
         for name, icon, target in modules:
@@ -439,6 +621,8 @@ class PokedexApp(MDApp):
         self.id_banner.md_bg_color = color_map.get(gen_selection, [0.2, 0.2, 0.2, 1])
         self.status_label.text = f"ACTIVE: {gen_selection.replace('gen', 'GENERATION ')}"
         if self.is_analyzing: self.enter_live_state()
+
+    def change_screen(self, name): self.sm.current = name
 
 if __name__ == "__main__":
     PokedexApp().run()
