@@ -1,5 +1,20 @@
 PokedexPi: AI-Powered Handheld Encyclopedia
 
+<table style="width: 100%;">
+  <tr>
+    <td><img src="docs/images/preview1.png" width="200"></td>
+    <td><img src="docs/images/preview2.png" width="200"></td>
+    <td><img src="docs/images/preview3.png" width="200"></td>
+    <td><img src="docs/images/preview4.png" width="200"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Main Menu</b></td>
+    <td align="center"><b>Scanning Mode</b></td>
+    <td align="center"><b>Results: Description</b></td>
+    <td align="center"><b>Results: Moveset</b></td>
+  </tr>
+</table>
+
 PokedexPi is a physical, handheld device built on the Raspberry Pi 5 that uses Computer Vision and Deep Learning to identify Pokémon in real-time. Inspired by the original anime and games, it features a multi-generational database, live camera analysis, and a high-tech modular UI.
 
 Features
